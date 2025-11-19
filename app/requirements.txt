@@ -1,0 +1,13 @@
+alembic>=1.16.5
+python-slugify>=8.0.4
+fastapi>=0.118.2
+uvicorn>=0.37.0
+pydantic-settings>=2.11.0
+psycopg2-binary>=2.9.10
+Pyjwt>=2.10.1
+boto3>=1.40.47
+pillow>=11.3.0
+python-multipart>=0.0.20
+razorpay>=2.0.0
+gunicorn>=23.0.0
+
