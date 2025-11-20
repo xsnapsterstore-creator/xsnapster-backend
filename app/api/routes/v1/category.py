@@ -4,7 +4,7 @@ from slugify import slugify
 from models.products import Category
 from db.session import get_db
 from services.category_service import *
-from typing import Optional, List
+from typing import Optional, List, Any
 from services.s3_service import s3_service
 
 
@@ -66,49 +66,48 @@ async def add_subcategories(
     category_name: Optional[str] = Form(None),
     category_one_liner: Optional[str] = Form(None),
     subcategory_names: List[str] = Form(...),
-    images: Optional[List[UploadFile]] = File(None),
+    images: Optional[List[Any]] = File(default=None),   # <-- FIX HERE
     db: Session = Depends(get_db),
 ):
-    """
-    Creates multiple subcategories under an existing category.
-    If category_id is not provided, category_name will be used to create/get category.
-    """
-    print('subcategory_names', subcategory_names)
-    if not category_id and not category_name:
-        raise HTTPException(status_code=400, detail="Either category_id or category_name is required")
 
-     
+    print("RAW images:", images)
+
+    # Clean image inputs
+    valid_images: List[UploadFile] = []
+    if images:
+        for item in images:
+            if isinstance(item, UploadFile):   # real file
+                valid_images.append(item)
+            else:
+                # Swagger sends "" (string), skip it
+                continue
+
+    print("VALID UploadFiles:", valid_images)
+
     image_links = []
-    for image in images:
-        try:
-            await image.seek(0)
-            url = await s3_service.upload_image(image)
-            image_links.append(url)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to upload {image.filename}: {str(e)}")
-
-    print(image_links)
-
+    for image in valid_images:
+        await image.seek(0)
+        url = await s3_service.upload_image(image)
+        image_links.append(url)
 
     category = create_or_get_category(
         db=db,
         category_id=category_id,
         name=category_name,
         one_liner=category_one_liner,
-        image_links=image_links
+        image_links=image_links,
     )
 
     subcategories = create_multiple_subcategories(
         db=db,
         category_id=category.id,
-        subcategory_names=subcategory_names
+        subcategory_names=subcategory_names,
     )
 
     return {
         "category": {"id": category.id, "name": category.name},
-        "subcategories": subcategories
+        "subcategories": subcategories,
     }
-
 @subcategory_router.get("/")
 def list_subcategories(db: Session = Depends(get_db)):
     print('here')
