@@ -53,6 +53,7 @@ class Address(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
+    name = Column(String, nullable=False) 
     address_line = Column(String, nullable=False)
     city = Column(String, nullable=False)
     state = Column(String, nullable=False)

@@ -5,7 +5,8 @@ from models.users import User
 from models.users import OTP
 from models.refresh_token import RefreshToken
 from core.security import create_access_token, create_refresh_token, verify_token
-from utils.otp_sender import send_otp_email
+from utils.otp_sender import send_otp_email, validate_email
+from email_validator import validate_email, EmailNotValidError
 from sqlalchemy.exc import SQLAlchemyError
 from core.exceptions import (
     OTPAlreadySentException,
@@ -29,6 +30,13 @@ def request_otp(db, identifier: str):
         user = db.query(User).filter(
             (User.email == identifier) | (User.phone_number == identifier)
         ).first()
+
+        if "@" in identifier:
+            try:
+               response = validate_email(identifier, check_deliverability=True)
+               print("Email validation response:", response)
+            except EmailNotValidError as e:
+               raise HTTPException(status_code=400, detail=f"Invalid or undeliverable email: {str(e)}")
 
         new_user_created = False
         if not user:

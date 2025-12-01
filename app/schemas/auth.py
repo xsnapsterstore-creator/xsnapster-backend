@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 class OTPVerifyRequest(BaseModel):
     identifier: str  # email or phone_number

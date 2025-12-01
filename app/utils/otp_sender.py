@@ -2,7 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from random import randint
 from core.config import settings  
-
+from email_validator import validate_email, EmailNotValidError
 
 
 def send_otp_email(to_email: str, otp: str):
@@ -31,3 +31,10 @@ def send_otp_email(to_email: str, otp: str):
     except Exception as e:
         print("Error sending email:", e)
         raise
+
+def validate_real_email(email: str):
+    try:
+        validated = validate_email(email, check_deliverability=True)
+        return validated.email
+    except EmailNotValidError as e:
+        raise ValueError(str(e))
