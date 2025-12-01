@@ -66,7 +66,7 @@ async def add_subcategories(
     category_name: Optional[str] = Form(None),
     category_one_liner: Optional[str] = Form(None),
     subcategory_names: List[str] = Form(...),
-    images: Optional[List[Any]] = File(default=None),   # <-- FIX HERE
+    images: Optional[List[Any]] = File(default=None),   
     db: Session = Depends(get_db),
 ):
 

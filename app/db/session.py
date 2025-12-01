@@ -5,7 +5,11 @@ from db.base import Base
 
 target_metadata = Base.metadata
 
-db = Database(settings.DATABASE_URL)
+db = Database(
+    settings.DATABASE_URL,
+    pool_size=1,
+    max_overflow=1
+)
 
 
 def get_db():
@@ -18,7 +22,5 @@ def get_db():
 
 def get_db_session():
     session = db.get_session()
-    try:
-        return session
-    finally:
-        session.close()
+    return session 
+
