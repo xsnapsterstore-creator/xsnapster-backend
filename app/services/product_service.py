@@ -126,15 +126,15 @@ def get_product_by_id(db: Session, product_id: int):
 
     return response
 
-
 def get_top_products_by_category(db: Session, limit_per_category: int = 4):
     """
-    Fetch top N most viewed products for each category.
-    If no analytics exist, fallback to latest products.
+    Fetch top N most viewed products for each category,
+    including dimension pricing (same as get_product_by_id).
     """
     result = []
 
     categories = db.query(Category).all()
+
     for category in categories:
         # Join products with analytics
         products = (
@@ -146,28 +146,36 @@ def get_top_products_by_category(db: Session, limit_per_category: int = 4):
             .all()
         )
 
-        category_data = {
+        category_products = []
+        for p in products:
+            # 🔥 Add dimension pricing EXACTLY like get_product_by_id
+            dimension_pricing = calculate_dimension_pricing_db(
+                db,
+                p.dimensions or [],
+                p.price,
+                p.discounted_price
+            )
+
+            category_products.append({
+                "id": p.id,
+                "title": p.title,
+                "one_liner": p.one_liner,
+                "slug": p.slug,
+                "image_link": (p.image_links[0] if p.image_links else ""),
+                "view_count": p.analytics.view_count if p.analytics else 0,
+                "price": p.price,
+                "discounted_price": p.discounted_price,
+                "category": category.name,
+                "dimensions": p.dimensions,
+                "dimension_pricing": dimension_pricing,     
+                "subcategory": p.subcategory_rel.name if p.subcategory_rel else ""
+            })
+
+        result.append({
             "category_id": category.id,
             "category_name": category.name,
-            "products": [
-                {
-                    "id": p.id,
-                    "title": p.title,
-                    "one_liner": p.one_liner,
-                    "slug": p.slug,
-                    "image_link": p.image_links[0] or "",
-                    "view_count": p.analytics.view_count if p.analytics else 0,
-                    "price": p.price,
-                    "discounted_price": p.discounted_price,
-                    "category": category.name,
-                    "subcategory": p.subcategory_rel.name if p.subcategory_rel else ""
-                    
-                }
-                for p in products
-            ]
-        }
-
-        result.append(category_data)
+            "products": category_products
+        })
 
     return result
 
@@ -211,10 +219,10 @@ def get_products_by_category(db: Session, category_id: int):
         })
 
     return result
-
 def get_products_by_subcategory(db: Session, subcategory_id: int):
     """
-    Fetch all active products of a given subcategory including variations and category names.
+    Fetch all active products of a given subcategory including variations,
+    category names, and dimension pricing.
     """
     subcategory = db.query(SubCategory).filter(SubCategory.id == subcategory_id).first()
     if not subcategory:
@@ -229,7 +237,14 @@ def get_products_by_subcategory(db: Session, subcategory_id: int):
 
     result = []
     for p in products:
-        
+
+        # 🔥 Get pricing for each dimension
+        dimension_pricing = calculate_dimension_pricing_db(
+            db,
+            p.dimensions or [],
+            p.price,
+            p.discounted_price
+        )
 
         category_name = p.category_rel.name if p.category_rel else None
 
@@ -239,13 +254,14 @@ def get_products_by_subcategory(db: Session, subcategory_id: int):
             "one_liner": p.one_liner,
             "description": p.description,
             "slug": p.slug,
-            "image_link": p.image_links[0] or "",
+            "image_link": p.image_links[0] if p.image_links else "",
             "category": category_name,
             "subcategory": subcategory.name,
             "is_active": p.is_active,
             "created_at": p.created_at,
             "updated_at": p.updated_at,
             "dimensions": p.dimensions,
+            "dimension_pricing": dimension_pricing,
             "price": p.price,
             "discounted_price": p.discounted_price
         })

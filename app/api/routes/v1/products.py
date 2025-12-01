@@ -24,7 +24,8 @@ async def add_product(
     discounted_price: Optional[float] = Form(None),
     dimensions: List[str] = Form([])
 ):
-    # --- Upload images ---
+    dimensions = dimensions or ["A4","A3","A2","Poster"]
+
     image_links = []
     for image in images:
         try:

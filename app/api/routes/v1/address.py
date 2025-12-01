@@ -12,7 +12,7 @@ from services.address_service import (
 from typing import List
 from models.users import User
 
-router = APIRouter(prefix="/addresses", tags=["Addresses"])
+router = APIRouter(prefix="/v1/addresses", tags=["Addresses"])
 
 
 @router.post("/", response_model=AddressResponse, status_code=status.HTTP_201_CREATED)

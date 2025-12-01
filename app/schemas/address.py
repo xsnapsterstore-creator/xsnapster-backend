@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 class AddressBase(BaseModel):
+    name: str = Field(..., example="John Doe")
     address_line: str = Field(..., example="123 Main Street")
     city: str = Field(..., example="New York")
     state: str = Field(..., example="NY")

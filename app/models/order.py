@@ -14,15 +14,17 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     razorpay_order_id = Column(String, unique=True, index=True)
     amount = Column(Float, nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # relationship back to product
+    # relationships
+    user = relationship("User", back_populates="orders")
     product = relationship("Product", back_populates="orders")
-    payment = relationship("Payment", uselist=False, back_populates="order") 
+    payment = relationship("Payment", uselist=False, back_populates="order")
 
 
 
