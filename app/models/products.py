@@ -115,7 +115,7 @@ class Product(Base):
     category_rel = relationship("Category", back_populates="products")
     subcategory_rel = relationship("SubCategory", back_populates="products")
     analytics = relationship("ProductAnalytics", back_populates="product", uselist=False, passive_deletes=True)    
-    orders = relationship("Order", back_populates="product")
+    order_items = relationship("OrderItem", back_populates="product")
 
     def __repr__(self):
         return f"<Product(title='{self.title}', price={self.price}, dimensions={self.dimensions})>"

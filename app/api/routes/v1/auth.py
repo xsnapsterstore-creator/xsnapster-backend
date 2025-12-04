@@ -52,7 +52,7 @@ def refresh_token_route(request: Request, response: Response, db: Session = Depe
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=30 * 24 * 60 * 60,
     )
 

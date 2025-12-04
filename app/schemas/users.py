@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from schemas.address import AddressResponse
-from schemas.orders import OrderSchema
+from schemas.order import OrderSchema
 
 class UserProfileSchema(BaseModel):
     id: str
