@@ -27,7 +27,7 @@ def verify_otp_route(payload: OTPVerifyRequest, response: Response, db: Session 
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=30 * 24 * 60 * 60,
     )
 
