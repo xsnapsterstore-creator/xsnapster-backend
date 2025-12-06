@@ -268,7 +268,11 @@ def logout_user(response: Response, db: Session, current_user: User):
         db.commit()
 
         # Clear refresh token cookie
-        response.delete_cookie("refresh_token")
+        response.delete_cookie(
+                key="refresh_token",
+                domain=".xsnapster.store",
+                path="/",
+                )
 
         return {"success": True, "message": "User logged out successfully."}
 

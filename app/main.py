@@ -19,7 +19,7 @@ setup_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://xsnapster.store", "https://xsnapster.vercel.app", "https://api.xsnapster.store", "http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
+    allow_origins=["http://localhost:3000", "https://xsnapster.store", "https://xsnapster.vercel.app", "https://api.xsnapster.store", "http://www.xsnapster.store"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
