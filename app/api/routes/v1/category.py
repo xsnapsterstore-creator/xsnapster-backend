@@ -73,14 +73,16 @@ async def add_subcategories(
     print("RAW images:", images)
 
     # Clean image inputs
-    valid_images: List[UploadFile] = []
+    valid_images = []
     if images:
         for item in images:
-            if isinstance(item, UploadFile):   # real file
-                valid_images.append(item)
-            else:
-                # Swagger sends "" (string), skip it
+           if not item:
                 continue
+           if isinstance(item, str) and item.strip() == "":
+                continue
+           
+           if hasattr(item, 'filename'):
+                valid_images.append(item)
 
     print("VALID UploadFiles:", valid_images)
 

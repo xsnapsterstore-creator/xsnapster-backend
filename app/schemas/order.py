@@ -12,11 +12,16 @@ class VerifyPaymentRequest(BaseModel):
 
 class OrderSchema(BaseModel):
     id: int
-    product_id: int
+    product_ids: List[int]
     razorpay_order_id: Optional[str]
     amount: float
     status: str
     created_at: datetime
+    total_items: int
+    total_cost: float
+    payment: Optional[str]
+    paid_amount: Optional[float]
+    payment_method: Optional[str]
 
     class Config:
         orm_mode = True

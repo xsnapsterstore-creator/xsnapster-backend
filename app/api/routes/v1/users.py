@@ -17,6 +17,8 @@ def get_profile(
     default_address = get_user_default_address(db, current_user.id)
     user_orders = get_user_orders(db, current_user.id)
 
+    print("User Orders:", user_orders[0])
+
     return UserProfileSchema(
         id=current_user.id,
         email=current_user.email,
@@ -29,3 +31,4 @@ def get_profile(
         orders=user_orders
     )
 
+    # return {"data": default_address}

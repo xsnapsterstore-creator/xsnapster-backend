@@ -24,6 +24,7 @@ app.add_middleware(
         "https://xsnapster.store",
         "https://www.xsnapster.store",
         "https://xsnapster.vercel.app",
+        "https://dev.xsnapster.store",
     ],
     allow_credentials=True,
     allow_methods=["*"],

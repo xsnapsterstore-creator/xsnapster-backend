@@ -1,8 +1,9 @@
 from slugify import slugify
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.products import Category, SubCategory
 from typing import Optional, List
 from fastapi import HTTPException
+
 
 
 def create_or_get_category(
@@ -118,7 +119,11 @@ def create_multiple_subcategories(
     return subcategories
 
 def get_all_subcategories(db: Session):
-    return db.query(SubCategory).all()
+    return (
+        db.query(SubCategory)
+        .options(joinedload(SubCategory.category))  # eager load category
+        .all()
+    )
 
 
 def get_subcategories_by_category(db: Session, category_id: int):
