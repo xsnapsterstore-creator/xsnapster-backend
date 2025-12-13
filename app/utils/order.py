@@ -1,182 +1,172 @@
-# # app/utils/payments.py
-# from fastapi import HTTPException
-# from sqlalchemy.orm import Session
-# from models.order import Order, Payment, OrderStatus
-# from models.products import Product
-# from services.razorpay_service import RazorpayService
-
-# razorpay = RazorpayService()
-
-# def create_order_util(product_id: int, db: Session):
-#     """Create a Razorpay order and store it in DB"""
-
-#     product = db.query(Product).filter(Product.id == product_id).first()
-#     if not product:
-#         raise HTTPException(status_code=404, detail="Product not found")
-
-#     # create order in Razorpay
-#     order_data = razorpay.create_order(amount=product.price)
-
-#     order = Order(
-#         product_id=product.id,
-#         razorpay_order_id=order_data["id"],
-#         amount=product.price,
-#         status=OrderStatus.PENDING,
-#     )
-#     db.add(order)
-#     db.commit()
-#     db.refresh(order)
-
-#     return {
-#         "order_id": order_data["id"],
-#         "razorpay_key": razorpay.key_id,
-#         "amount": product.price,
-#         "currency": "INR",
-#     }
-
-
-
-# def verify_payment_util(order_id: str, payment_id: str, signature: str, db: Session):
-#     """Verify payment signature and record payment"""
-
-#     if not razorpay.verify_signature(order_id, payment_id, signature):
-#         raise HTTPException(status_code=400, detail="Invalid payment signature")
-
-#     order = db.query(Order).filter(Order.razorpay_order_id == order_id).first()
-#     if not order:
-#         raise HTTPException(status_code=404, detail="Order not found")
-
-#     existing_payment = db.query(Payment).filter(
-#         Payment.razorpay_payment_id == payment_id
-#     ).first()
-#     if existing_payment:
-#         raise HTTPException(status_code=400, detail="Payment already processed")
-
-#     payment = Payment(
-#         order_id=order.id,
-#         razorpay_payment_id=payment_id,
-#         razorpay_signature=signature,
-#         amount=order.amount,
-#         status="paid",
-#     )
-
-#     order.status = OrderStatus.PAID
-#     db.add(payment)
-#     db.commit()
-#     db.refresh(payment)
-
-#     return {
-#         "status": "success",
-#         "message": "Payment verified successfully!",
-#         "order_id": order.id,
-#         "payment_id": payment.id,
-#     }
-
-
 from typing import List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models.order import Order, OrderItem
+from models.order import Order, OrderItem, Payment
 from models.products import Product
-from services.razorpay_service import RazorpayService
+from services.razorpay_service import razorpay_service
 from utils.pricing import calculate_dimension_pricing_db
+from models.users import Address
 
-razorpay_service = RazorpayService()
 
 class OrderService:
 
     @staticmethod
-    def create_order(db: Session, user_id: str, items: List[dict]):
-        """
-        items: list of dicts with keys: product_id, quantity, dimension
-        """
-
+    def create_order(
+        db: Session,
+        user_id: str,
+        items: List[dict],
+        address_id: int,
+        payment_method: str
+    ):
         if not items:
-            raise HTTPException(status_code=400, detail="Cart cannot be empty")
+            raise HTTPException(400, "Cart cannot be empty")
 
-        # Collect product ids and validate shape
-        product_ids = [i["product_id"] for i in items]
-        products = db.query(Product).filter(Product.id.in_(product_ids)).all()
-        product_map = {p.id: p for p in products}
+        # 1️⃣ Fetch & validate address
+        address = db.query(Address).filter(
+            Address.id == address_id,
+            Address.user_id == user_id
+        ).first()
 
-        order_total = 0.0
-        order_items_data = []
-        print(items)
-        # Validate every cart item and compute unit prices using dimension multipliers
-        for item in items:
-            pid = item.get("product_id")
-            qty = item.get("qty")
-            dim = item.get("dimension")
+        if not address:
+            raise HTTPException(404, "Address not found")
 
-            if pid not in product_map:
-                raise HTTPException(status_code=400, detail=f"Invalid product: {pid}")
+        # 2️⃣ Validate items & pricing
+        priced_items, order_total = OrderService._validate_and_price_items(db, items)
 
-            if not isinstance(qty, int) or qty <= 0:
-                raise HTTPException(status_code=400, detail="Quantity must be integer >= 1")
-
-            product = product_map[pid]
-
-            # Validate the requested dimension exists on the product
-            if not product.dimensions or dim not in product.dimensions:
-                raise HTTPException(status_code=400, detail=f"Invalid dimension '{dim}' for product {pid}")
-
-            # Use helper to get price for this dimension (you can batch, but for clarity we call it per product)
-            pricing_map = calculate_dimension_pricing_db(
-                db=db,
-                dimensions=[dim],
-                base_price=product.price,
-                discounted_price=product.discounted_price
-            )
-            print(pricing_map)
-
-            dim_pricing = pricing_map.get(dim)
-            if not dim_pricing:
-                raise HTTPException(status_code=500, detail="Dimension pricing error")
-
-            # Use discounted price if available, otherwise normal price
-            unit_price = dim_pricing["discounted_price"] if dim_pricing["discounted_price"] is not None else dim_pricing["price"]
-            unit_price = float(round(unit_price, 2))
-
-            line_total = unit_price * qty
-            order_total += line_total
-
-            print("here")
-
-            order_items_data.append({
-                "product_id": pid,
-                "quantity": qty,
-                "price": unit_price,   # snapshot unit price
-                "dimension": dim
-            })
-        print("there")
-        # Create Razorpay order using calculated total
-        razorpay_order = razorpay_service.create_order(order_total)
-        razorpay_order_id = razorpay_order["id"]
-
-        # Persist Order
+        # 3️⃣ Create order with address SNAPSHOT
         order = Order(
             user_id=user_id,
+            delivery_name=address.name,
+            delivery_phone_number=address.phone_number,
+            delivery_address_line=address.address_line,
+            delivery_city=address.city,
+            delivery_state=address.state,
+            delivery_zip_code=address.zip_code,
+            delivery_address_type=address.address_type,
             amount=order_total,
-            razorpay_order_id=razorpay_order_id,
-            status="PENDING"
+            order_status="CREATED"
         )
-        db.add(order)
-        db.flush()  # populate order.id
 
-        # Persist OrderItems
-        for it in order_items_data:
-            print(it)
-            db.add(OrderItem(order_id=order.id, **it))
+        db.add(order)
+        db.flush()  # generate order.id
+
+        # 4️⃣ Create order items
+        for item in priced_items:
+            db.add(OrderItem(order_id=order.id, **item))
+
+        # 5️⃣ Create payment
+        payment_response = OrderService._create_payment(
+            db=db,
+            order=order,
+            payment_method=payment_method,
+            amount=order_total
+        )
 
         db.commit()
         db.refresh(order)
 
-        # Return minimal payload to frontend
         return {
             "order_id": order.id,
-            "razorpay_order_id": razorpay_order_id,
             "amount": order_total,
             "currency": "INR",
-            "items": order_items_data
+            "payment_method": payment_method,
+            **payment_response,
+            "items": priced_items
         }
+
+    # --------------------------------------------------
+    # Validate items + calculate price
+    # --------------------------------------------------
+    @staticmethod
+    def _validate_and_price_items(db: Session, items: List[dict]):
+        product_ids = [i["product_id"] for i in items]
+        products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+        product_map = {p.id: p for p in products}
+
+        priced_items = []
+        order_total = 0.0
+
+        for item in items:
+            pid = item["product_id"]
+            qty = item["qty"]
+            dim = item["dimension"]
+
+            if pid not in product_map:
+                raise HTTPException(400, f"Invalid product: {pid}")
+
+            if qty <= 0:
+                raise HTTPException(400, "Quantity must be >= 1")
+
+            product = product_map[pid]
+
+            if not product.dimensions or dim not in product.dimensions:
+                raise HTTPException(400, f"Invalid dimension '{dim}' for product {pid}")
+
+            pricing = calculate_dimension_pricing_db(
+                db=db,
+                dimensions=[dim],
+                base_price=product.price,
+                discounted_price=product.discounted_price
+            )[dim]
+
+            unit_price = float(pricing["discounted_price"] or pricing["price"])
+            line_total = unit_price * qty
+            order_total += line_total
+
+            priced_items.append({
+                "product_id": pid,
+                "quantity": qty,
+                "price": unit_price,
+                "dimension": dim
+            })
+
+        return priced_items, round(order_total, 2)
+
+    # --------------------------------------------------
+    # Create payment record (COD / Razorpay)
+    # --------------------------------------------------
+    @staticmethod
+    def _create_payment(
+        db: Session,
+        order: Order,
+        payment_method: str,
+        amount: float
+    ):
+        if payment_method == "COD":
+            payment = Payment(
+                order_id=order.id,
+                payment_method="COD",
+                amount=amount,
+                status="SUCCESS"
+            )
+
+            order.order_status = "CONFIRMED"
+
+            db.add(payment)
+
+            return {
+                "payment_status": "SUCCESS"
+            }
+
+        if payment_method == "RAZORPAY":
+            razorpay_order = razorpay_service.create_order(amount)
+
+            print("Created Razorpay order:", razorpay_order)
+
+            payment = Payment(
+                order_id=order.id,
+                payment_method="RAZORPAY",
+                gateway_order_id=razorpay_order["id"],
+                amount=amount,
+                status="CREATED"
+            )
+
+            db.add(payment)
+
+            return {
+                "payment_status": "CREATED",
+                "payment_gateway_order_id": razorpay_order["id"]
+            }
+
+        raise HTTPException(400, f"Unsupported payment method: {payment_method}")

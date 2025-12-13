@@ -5,10 +5,15 @@ from schemas.cart import CartItem
 from typing import List, Literal
 
 
+from pydantic import BaseModel
+
 class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
-    payment_id: str
-    signature: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    order_id: int  
+
+
 
 
 class OrderItemSchema(BaseModel):
@@ -22,7 +27,7 @@ class OrderItemSchema(BaseModel):
     subcategory: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class OrderSchema(BaseModel):
@@ -39,7 +44,7 @@ class OrderSchema(BaseModel):
     payment_method: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CreateOrderRequest(BaseModel):

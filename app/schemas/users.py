@@ -17,4 +17,4 @@ class UserProfileSchema(BaseModel):
     default_address: Optional[AddressResponse]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -7,6 +7,7 @@ from api.routes.v1 import auth, products, users, category, address, order
 from core.error_handlers import setup_exception_handlers
 
 
+
 # db.create_tables()
 
 app = FastAPI(
@@ -25,6 +26,7 @@ app.add_middleware(
         "https://www.xsnapster.store",
         "https://xsnapster.vercel.app",
         "https://dev.xsnapster.store",
+        "http://localhost:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.database import Base  # assuming your SQLAlchemy Base is here
@@ -13,16 +13,31 @@ class OrderStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    razorpay_order_id = Column(String, unique=True, index=True)
-    amount = Column(Float, nullable=False)   # total amount
-    status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+
+    delivery_name = Column(String, nullable=False)
+    delivery_phone_number = Column(String, nullable=False)
+    delivery_address_line = Column(String, nullable=False)
+    delivery_city = Column(String, nullable=False)
+    delivery_state = Column(String, nullable=False)
+    delivery_zip_code = Column(String, nullable=False)
+    delivery_address_type = Column(String, nullable=True)
+
+    amount = Column(Float, nullable=False)
+
+    # Order lifecycle only (not payment)
+    order_status = Column(
+        Enum("CREATED", "CONFIRMED", "CANCELLED","SHIPPED", "FULFILLED", name="order_status"),
+        default="CREATED"
+    )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     payment = relationship("Payment", uselist=False, back_populates="order")
+
 
 
 class OrderItem(Base):
@@ -47,13 +62,23 @@ class OrderItem(Base):
 class Payment(Base):
     __tablename__ = "payments"
 
-    id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    razorpay_payment_id = Column(String, unique=True, index=True)
-    razorpay_signature = Column(String)
-    amount = Column(Float)
-    status = Column(String, default="initiated")
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), unique=True)
+
+    payment_method = Column(String, nullable=False)  # COD | RAZORPAY
+    gateway_order_id = Column(String, nullable=True) # Razorpay order_id
+    transaction_id = Column(String, nullable=True)   # Razorpay payment_id
+    signature = Column(String, nullable=True)
+
+    amount = Column(Float, nullable=False)
+
+    status = Column(
+        Enum("CREATED", "SUCCESS", "FAILED", name="payment_status"),
+        default="CREATED"
+    )
+
+    raw_response = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # relationship back to order
     order = relationship("Order", back_populates="payment")
+
