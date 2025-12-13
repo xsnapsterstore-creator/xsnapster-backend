@@ -15,7 +15,6 @@ class UserProfileSchema(BaseModel):
     updated_at: Optional[datetime]
 
     default_address: Optional[AddressResponse]
-    orders: List[OrderSchema] = []
 
     class Config:
         orm_mode = True
