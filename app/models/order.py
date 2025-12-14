@@ -1,14 +1,21 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum, JSON
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Enum as SAEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from db.database import Base  # assuming your SQLAlchemy Base is here
+from db.database import Base  
 import enum
 
 class OrderStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    PAID = "PAID"
-    FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
+    CREATED = "CREATED"        # Order created, payment pending
+    CONFIRMED = "CONFIRMED"    # Payment successful / COD confirmed
+    CANCELLED = "CANCELLED"    # Cancelled by user/system
+    SHIPPED = "SHIPPED"        # Shipped by seller
+    FULFILLED = "FULFILLED"    # Delivered / completed
+
+
+class PaymentStatus(str, enum.Enum):
+    CREATED = "CREATED"   # Payment initiated, pending
+    SUCCESS = "SUCCESS"   # Payment successful
+    FAILED = "FAILED"     # Payment failed
 
 class Order(Base):
     __tablename__ = "orders"
@@ -24,12 +31,15 @@ class Order(Base):
     delivery_zip_code = Column(String, nullable=False)
     delivery_address_type = Column(String, nullable=True)
 
+    quantity = Column(Integer, nullable=False, default=1)
+
     amount = Column(Float, nullable=False)
 
     # Order lifecycle only (not payment)
     order_status = Column(
-        Enum("CREATED", "CONFIRMED", "CANCELLED","SHIPPED", "FULFILLED", name="order_status"),
-        default="CREATED"
+        SAEnum(OrderStatus, name="order_status"),
+        default=OrderStatus.CREATED,
+        nullable=False
     )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -72,9 +82,11 @@ class Payment(Base):
 
     amount = Column(Float, nullable=False)
 
+   
     status = Column(
-        Enum("CREATED", "SUCCESS", "FAILED", name="payment_status"),
-        default="CREATED"
+        SAEnum(PaymentStatus, name="payment_status"),
+        default=PaymentStatus.CREATED,
+        nullable=False
     )
 
     raw_response = Column(JSON, nullable=True)

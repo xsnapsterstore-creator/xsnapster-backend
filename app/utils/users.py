@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from models.users import User, Address
-from models.order import Order
+from models.order import Order, OrderStatus
 from schemas.order import OrderSchema, OrderItemSchema
 def get_user_default_address(db: Session, user_id: str):
     """
@@ -18,11 +18,14 @@ def get_user_orders(db: Session, user_id: str):
     """
 
     orders = (
-        db.query(Order)
-        .filter(Order.user_id == user_id)
-        .order_by(Order.created_at.desc())
-        .all()
+    db.query(Order)
+    .filter(
+        Order.user_id == user_id,
+        Order.order_status != OrderStatus.CREATED
     )
+    .order_by(Order.created_at.desc())
+    .all()
+)
 
     order_list = []
 
@@ -41,18 +44,17 @@ def get_user_orders(db: Session, user_id: str):
                 "ordered_price": item.price,
                 "category": product.category_rel.name if product.category_rel else None,
                 "subcategory": product.subcategory_rel.name if product.subcategory_rel else None,
-                "quantity": 1,
+                "quantity": item.quantity
             })
 
         print("this is item data", items_data)
 
         order_list.append({
             "id": order.id,
-            "razorpay_order_id": order.razorpay_order_id,
             "amount": order.amount,
-            "status": order.status.value if hasattr(order.status, "value") else order.status,
+            "status": order.order_status,
             "created_at": order.created_at, # totals
-            "total_items": sum(i.quantity for i in order.items),
+            "total_items": order.quantity,
             "total_cost": sum(i.price * i.quantity for i in order.items),
 
             # payment
