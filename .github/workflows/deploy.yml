@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.actor }}/${{ secrets.APP_NAME }}:latest
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ secrets.APP_NAME }}:latest
 
 jobs:
   build-and-deploy:
@@ -22,7 +22,7 @@ jobs:
     - name: Login to GHCR
       run: |
         echo "${{ github.token }}" | docker login ghcr.io \
-        -u ${{ github.actor }} --password-stdin
+        -u ${{ github.repository_owner }} --password-stdin
 
     - name: Build Docker image
       run: |
