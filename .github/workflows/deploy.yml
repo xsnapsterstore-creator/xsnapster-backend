@@ -34,12 +34,13 @@ jobs:
 
     - name: Deploy on VPS
       uses: appleboy/ssh-action@v1.0.0
-      envs: IMAGE_NAME  
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
+        envs: IMAGE_NAME
         script: |
+          echo "IMAGE_NAME=$IMAGE_NAME"
           docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
 
           docker pull $IMAGE_NAME
