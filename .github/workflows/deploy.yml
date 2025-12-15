@@ -1,33 +1,54 @@
-name: Deploy Backend
+name: Deploy FastAPI to VPS
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.actor }}/${{ secrets.APP_NAME }}:latest
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Copy project files to server via SCP
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        source: "app"
-        target: "/var/www/xsnapster/backend/app"
+    - name: Login to GHCR
+      run: |
+        echo "${{ github.token }}" | docker login ghcr.io \
+        -u ${{ github.actor }} --password-stdin
 
-    - name: SSH into server and deploy
-      uses: appleboy/ssh-action@v1.0.3
+    - name: Build Docker image
+      run: |
+        docker build -t $IMAGE_NAME ./app
+
+    - name: Push Docker image
+      run: |
+        docker push $IMAGE_NAME
+
+    - name: Deploy on VPS
+      uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /var/www/xsnapster/backend/app
-          docker-compose down
-          docker-compose up -d --build
+          docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
+
+          docker pull $IMAGE_NAME
+
+          docker stop ${{ secrets.APP_NAME }} || true
+          docker rm ${{ secrets.APP_NAME }} || true
+
+          docker run -d \
+            --name ${{ secrets.APP_NAME }} \
+            --env-file /root/xsnapster.env \
+            -p 8000:8000 \
+            --restart unless-stopped \
+            $IMAGE_NAME
