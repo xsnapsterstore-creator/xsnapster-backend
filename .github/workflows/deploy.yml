@@ -34,8 +34,7 @@ jobs:
 
     - name: Deploy on VPS
       uses: appleboy/ssh-action@v1.0.0
-      env:
-        IMAGE_NAME: ${{ env.IMAGE_NAME }}  
+      envs: IMAGE_NAME  
       with:
         host: ${{ secrets.SSH_HOST }}
         username: ${{ secrets.SSH_USER }}
