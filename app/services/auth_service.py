@@ -272,7 +272,10 @@ def logout_user(response: Response, db: Session, current_user: User):
                 key="refresh_token",
                 domain=".xsnapster.store",
                 path="/",
+                secure=True,
+                samesite="none",
                 )
+
 
         return {"success": True, "message": "User logged out successfully."}
 

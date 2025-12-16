@@ -78,6 +78,4 @@ def logout_route(
 ):
     return logout_user(response, db, current_user)
 
-@router.get("/check")
-def check_ci_cd():
-    return {"message": "CI/CD is working fine!"}
+
