@@ -17,17 +17,15 @@ def get_profile(
 ):
     default_address = get_user_default_address(db, current_user.id)
 
-
-
     return UserProfileSchema(
         id=current_user.id,
         email=current_user.email,
-        phone_number=default_address.phone_number,
+        phone_number=default_address.phone_number if default_address else None,
         is_verified=current_user.is_verified,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         updated_at=current_user.updated_at,
-        default_address=default_address,
+        default_address=default_address if default_address else None
     )
 
 
