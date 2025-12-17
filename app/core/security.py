@@ -48,6 +48,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     Returns the User object if valid, raises HTTPException otherwise.
     """
     try:
+        print("Authenticating token:", token)
         payload = verify_token(token, settings.SECRET_KEY)
         user_id: str = payload.get("sub")  # "sub" is standard claim for user ID
         
