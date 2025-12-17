@@ -259,10 +259,12 @@ def logout_user(response: Response, db: Session, current_user: User):
         ).all()
 
         if not active_tokens:
+            print("No active tokens found for logout")
             raise TokenNotFoundException()
 
         # Revoke all tokens
         for token in active_tokens:
+            
             token.is_revoked = True
             db.add(token)
         db.commit()
@@ -280,6 +282,7 @@ def logout_user(response: Response, db: Session, current_user: User):
         return {"success": True, "message": "User logged out successfully."}
 
     except TokenNotFoundException:
+        print("Token not found during logout")
         raise  # propagate known exception for FastAPI handler
 
     except Exception as e:
