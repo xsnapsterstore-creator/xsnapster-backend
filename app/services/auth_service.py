@@ -252,6 +252,7 @@ def logout_user(response: Response, db: Session, current_user: User):
     """
 
     try:
+        print("Initiating logout for user:", current_user.id)
         # Fetch all active refresh tokens for the user
         active_tokens = db.query(RefreshToken).filter(
             RefreshToken.user_id == current_user.id,

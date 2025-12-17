@@ -76,6 +76,7 @@ def logout_route(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    print("Logging out user:", current_user.id)
     return logout_user(response, db, current_user)
 
 
