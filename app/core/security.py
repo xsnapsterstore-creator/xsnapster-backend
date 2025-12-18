@@ -19,7 +19,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update({ 
+        "exp": expire,
+        "type": "access"
+        })
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -27,7 +30,10 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
     expire = datetime.utcnow() + (
         expires_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
-    to_encode.update({"exp": expire})
+    to_encode.update({
+        "exp": expire
+        , "type": "refresh"
+        })
     return jwt.encode(to_encode, settings.REFRESH_SECRET_KEY, algorithm=settings.ALGORITHM)
 
 def verify_token(token: str, secret_key: str):
@@ -48,9 +54,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     Returns the User object if valid, raises HTTPException otherwise.
     """
     try:
-        print("Authenticating token:", token)
         payload = verify_token(token, settings.SECRET_KEY)
         user_id: str = payload.get("sub")  # "sub" is standard claim for user ID
+
+        if payload.get("type") != "access":
+            raise HTTPException(
+                 status_code=status.HTTP_401_UNAUTHORIZED,
+                 detail="Invalid access token",
+                 headers={"WWW-Authenticate": "Bearer"},
+               )
         
         if not user_id:
             raise HTTPException(

@@ -195,32 +195,72 @@ def verify_otp_and_issue_tokens(db: Session, identifier: str, otp_code: str):
 def refresh_tokens(request: Request, db: Session):
     refresh_token_cookie = request.cookies.get("refresh_token")
     if not refresh_token_cookie:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing refresh token",
+        )
 
-    # Verify token
-    payload = verify_token(refresh_token_cookie, secret_key=settings.REFRESH_SECRET_KEY)
+    # 1️⃣ Verify refresh token JWT
+    payload = verify_token(
+        refresh_token_cookie,
+        secret_key=settings.REFRESH_SECRET_KEY,
+    )
+
+    if payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
+
     user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
 
-    # Validate refresh token in DB
+    # 2️⃣ Fetch token from DB (no filtering yet for reuse detection)
     token_in_db = db.query(RefreshToken).filter(
         RefreshToken.token == refresh_token_cookie,
-        RefreshToken.is_revoked == False,
-        RefreshToken.expires_at > datetime.utcnow(),
     ).first()
-    if not token_in_db:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
 
-    # Validate user
+    # 🚨 Refresh token reuse / invalid token
+    if not token_in_db or token_in_db.is_revoked:
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == user_id
+        ).update({"is_revoked": True})
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token reuse detected",
+        )
+
+    if token_in_db.expires_at <= datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired",
+        )
+
+    # 3️⃣ Validate user
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
 
-    # Issue new access token
-    new_access = create_access_token({"sub": user.id})
+    # 4️⃣ Issue new tokens
+    new_access = create_access_token(
+        {"sub": user.id}
+    )
+    new_refresh = create_refresh_token(
+        {"sub": user.id}
+    )
 
-    # Revoke old refresh token and create a new one
+    # 5️⃣ Rotate refresh token
     token_in_db.is_revoked = True
-    new_refresh = create_refresh_token({"sub": user.id})
+
     new_token = RefreshToken(
         user_id=user.id,
         token=new_refresh,
@@ -228,13 +268,14 @@ def refresh_tokens(request: Request, db: Session):
     )
 
     try:
-        db.add_all([token_in_db, new_token])
+        db.add(new_token)
         db.commit()
     except Exception:
         db.rollback()
         raise DatabaseOperationException()
 
     return new_access, new_refresh, user
+
 
 from fastapi import Request, Response
 from sqlalchemy.orm import Session

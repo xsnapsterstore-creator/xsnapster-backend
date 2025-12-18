@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, Request
+from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
 from sqlalchemy.orm import Session
 from db.session import get_db
 from services.auth_service import request_otp, verify_otp_and_issue_tokens, refresh_tokens, logout_user
@@ -46,29 +46,46 @@ def verify_otp_route(payload: OTPVerifyRequest, response: Response, db: Session 
 
 # 3️⃣ Refresh tokens
 @router.post("/refresh", response_model=AuthResponse)
-def refresh_token_route(request: Request, response: Response, db: Session = Depends(get_db)):
-    access_token, refresh_token, user = refresh_tokens(request, db)
+def refresh_token_route(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    try:
+        access_token, refresh_token, user = refresh_tokens(request, db)
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        domain=".xsnapster.store",   # want subdomain sharing
-        max_age=30 * 24 * 60 * 60,
-        path="/"
-    )
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            domain=".xsnapster.store",
+            max_age=7 * 24 * 60 * 60,
+            path="/",
+        )
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "phone_number": user.phone_number,
-        },
-    }
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "phone_number": user.phone_number,
+            },
+        }
+
+    except HTTPException as e:
+        if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            response.delete_cookie(
+                key="refresh_token",
+                domain=".xsnapster.store",
+                path="/",
+                secure=True,
+                samesite="none",
+            )
+        raise e
+
 
 @router.post("/logout")
 def logout_route(
