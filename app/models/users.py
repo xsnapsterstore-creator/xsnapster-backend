@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
 from db.base import Base
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def generate_uuid():
@@ -47,7 +47,7 @@ class OTP(Base):
 
     @staticmethod
     def create_expiry(minutes=5):
-        return datetime.utcnow() + timedelta(minutes=minutes)
+        return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
 
 class Address(Base):

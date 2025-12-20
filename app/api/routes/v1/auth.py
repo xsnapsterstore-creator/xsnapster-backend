@@ -31,7 +31,7 @@ def verify_otp_route(payload: OTPVerifyRequest, response: Response, db: Session 
         secure=True,
         samesite="none",
         domain=".xsnapster.store",   # want subdomain sharing
-        max_age=30 * 24 * 60 * 60,
+        max_age=REFRESH_TOKEN_MAX_AGE,
         path="/"
     )
 

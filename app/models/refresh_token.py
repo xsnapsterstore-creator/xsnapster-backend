@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from core.config import settings
+
 
 from db.base import Base
 
@@ -20,5 +22,7 @@ class RefreshToken(Base):
     user = relationship("User", back_populates="refresh_tokens")
 
     @staticmethod
-    def expiry(days=30):
-        return datetime.utcnow() + timedelta(days=days)
+    def expiry():
+        return datetime.now(timezone.utc) + timedelta(
+        days=float(settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        )

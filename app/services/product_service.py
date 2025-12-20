@@ -2,7 +2,7 @@ from slugify import slugify
 from sqlalchemy.orm import Session
 from models.products import Product, ProductAnalytics, Category, SubCategory
 from schemas.products import ProductCreate
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import desc
 from typing import Optional, List
 from utils.pricing import calculate_dimension_pricing_db
@@ -56,8 +56,8 @@ def create_product(db: Session, product_data, image_links: list):
         price=product_data.price,
         discounted_price=product_data.discounted_price,
         dimensions=product_data.dimensions, 
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     db.add(db_product)
     db.commit()
@@ -92,7 +92,7 @@ def get_product_by_id(db: Session, product_id: int):
         db.add(analytics)
     else:
         analytics.view_count += 1
-        analytics.updated_at = datetime.utcnow()
+        analytics.updated_at = datetime.now(timezone.utc)
     db.commit()
 
 
@@ -283,7 +283,7 @@ def update_product(db: Session, product_id: int, update_data: dict):
         if hasattr(product, field) and value is not None:
             setattr(product, field, value)
 
-    product.updated_at = datetime.utcnow()
+    product.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(product)
     return product

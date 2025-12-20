@@ -58,7 +58,7 @@ def request_otp(db, identifier: str):
             .filter(
                 OTP.user_id == user.id,
                 OTP.is_used == False,
-                OTP.expires_at > datetime.utcnow(),
+                OTP.expires_at > datetime.now(timezone.utc),
             )
             .order_by(OTP.created_at.desc())
             .first()
@@ -124,7 +124,7 @@ def verify_otp_and_issue_tokens(db: Session, identifier: str, otp_code: str):
                 OTP.user_id == user.id,
                 OTP.otp_code == otp_code,
                 OTP.is_used == False,
-                OTP.expires_at > datetime.utcnow(),
+                OTP.expires_at > datetime.now(timezone.utc),
             )
             .order_by(OTP.created_at.desc())
             .first()
@@ -143,7 +143,7 @@ def verify_otp_and_issue_tokens(db: Session, identifier: str, otp_code: str):
             .filter(
                 RefreshToken.user_id == user.id,
                 RefreshToken.is_revoked == False,
-                RefreshToken.expires_at > datetime.utcnow(),
+                RefreshToken.expires_at > datetime.now(timezone.utc),
             )
             .order_by(RefreshToken.expires_at.desc())
             .first()
