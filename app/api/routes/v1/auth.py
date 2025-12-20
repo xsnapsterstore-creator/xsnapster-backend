@@ -7,6 +7,8 @@ from core.security import get_current_user
 from models.users import User
 
 router = APIRouter(prefix="/v1/auth", tags=["Auth"])
+REFRESH_TOKEN_MAX_AGE = (6 * 24 + 23) * 60 * 60
+
 
 # 1️⃣ Request OTP
 @router.post("/request-otp")
@@ -54,6 +56,8 @@ def refresh_token_route(
     try:
         access_token, refresh_token, user = refresh_tokens(request, db)
 
+    
+
         response.set_cookie(
             key="refresh_token",
             value=refresh_token,
@@ -61,7 +65,7 @@ def refresh_token_route(
             secure=True,
             samesite="none",
             domain=".xsnapster.store",
-            max_age=7 * 24 * 60 * 60,
+            max_age=REFRESH_TOKEN_MAX_AGE,
             path="/",
         )
 

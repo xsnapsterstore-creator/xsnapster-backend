@@ -28,7 +28,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (
-        expires_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_delta or timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
     to_encode.update({
         "exp": expire
