@@ -206,6 +206,8 @@ def refresh_tokens(request: Request, db: Session):
         secret_key=settings.REFRESH_SECRET_KEY,
     )
 
+    print("Refresh token payload:", payload)
+
     if payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -236,7 +238,7 @@ def refresh_tokens(request: Request, db: Session):
             detail="Refresh token reuse detected",
         )
 
-    if token_in_db.expires_at <= datetime.utcnow():
+    if token_in_db.expires_at <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
