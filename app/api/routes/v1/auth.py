@@ -55,10 +55,7 @@ def refresh_token_route(
     db: Session = Depends(get_db),
 ):
     try:
-        print("Refreshing tokens using refresh token cookie")
         access_token, refresh_token, user = refresh_tokens(request, db)
-
-    
 
         response.set_cookie(
             key="refresh_token",
@@ -67,11 +64,9 @@ def refresh_token_route(
             secure=True,
             samesite="none",
             domain=".xsnapster.store",
-            max_age=REFRESH_TOKEN_MAX_AGE,
             path="/",
+            max_age=REFRESH_TOKEN_MAX_AGE,
         )
-
-        print("Issued new access and refresh tokens for user:", user.id)
 
         return {
             "access_token": access_token,
@@ -84,22 +79,21 @@ def refresh_token_route(
         }
 
     except HTTPException as e:
-       if e.status_code == status.HTTP_401_UNAUTHORIZED:
-        response.delete_cookie(
-            key="refresh_token",
-            domain=".xsnapster.store",
-            path="/",
-            secure=True,
-            samesite="none",
-            httponly=True,
+        if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            response.delete_cookie(
+                key="refresh_token",
+                domain=".xsnapster.store",
+                path="/",
+                secure=True,
+                samesite="none",
+                httponly=True,
+            )
+
+        return JSONResponse(
+            status_code=e.status_code,
+            content={"detail": e.detail},
+            headers=response.headers,
         )
-
-    return JSONResponse(
-        status_code=e.status_code,
-        content={"detail": e.detail},
-        headers=response.headers,  
-    )
-
 
 @router.post("/logout")
 def logout_route(
