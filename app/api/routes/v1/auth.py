@@ -81,6 +81,7 @@ def refresh_token_route(
 
     except HTTPException as e:
         if e.status_code == status.HTTP_401_UNAUTHORIZED:
+            print("Clearing refresh token cookie due to failed refresh")
             response.delete_cookie(
                 key="refresh_token",
                 domain=".xsnapster.store",
