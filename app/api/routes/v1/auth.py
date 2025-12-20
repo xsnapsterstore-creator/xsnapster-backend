@@ -5,6 +5,7 @@ from services.auth_service import request_otp, verify_otp_and_issue_tokens, refr
 from schemas.auth import RequestOTP, OTPVerifyRequest, AuthResponse
 from core.security import get_current_user
 from models.users import User
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/v1/auth", tags=["Auth"])
 REFRESH_TOKEN_MAX_AGE = (6 * 24 + 23) * 60 * 60
@@ -83,16 +84,21 @@ def refresh_token_route(
         }
 
     except HTTPException as e:
-        if e.status_code == status.HTTP_401_UNAUTHORIZED:
-            print("Clearing refresh token cookie due to failed refresh")
-            response.delete_cookie(
-                key="refresh_token",
-                domain=".xsnapster.store",
-                path="/",
-                secure=True,
-                samesite="none",
-            )
-        raise e
+       if e.status_code == status.HTTP_401_UNAUTHORIZED:
+        response.delete_cookie(
+            key="refresh_token",
+            domain=".xsnapster.store",
+            path="/",
+            secure=True,
+            samesite="none",
+            httponly=True,
+        )
+
+    return JSONResponse(
+        status_code=e.status_code,
+        content={"detail": e.detail},
+        headers=response.headers,  
+    )
 
 
 @router.post("/logout")
