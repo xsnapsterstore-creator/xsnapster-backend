@@ -194,7 +194,9 @@ def verify_otp_and_issue_tokens(db: Session, identifier: str, otp_code: str):
 # ----------------------------------------
 def refresh_tokens(request: Request, db: Session):
     refresh_token_cookie = request.cookies.get("refresh_token")
+    print("Received refresh token cookie:", refresh_token_cookie)
     if not refresh_token_cookie:
+        print("No refresh token cookie found")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing refresh token",
@@ -209,6 +211,7 @@ def refresh_tokens(request: Request, db: Session):
     print("Refresh token payload:", payload)
 
     if payload.get("type") != "refresh":
+        print("Invalid token type in payload")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",
@@ -228,6 +231,7 @@ def refresh_tokens(request: Request, db: Session):
 
     # 🚨 Refresh token reuse / invalid token
     if not token_in_db or token_in_db.is_revoked:
+        print("Refresh token reuse or invalid token detected")
         db.query(RefreshToken).filter(
             RefreshToken.user_id == user_id
         ).update({"is_revoked": True})
@@ -239,6 +243,7 @@ def refresh_tokens(request: Request, db: Session):
         )
 
     if token_in_db.expires_at <= datetime.now(timezone.utc):
+        print("Refresh token has expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
@@ -247,6 +252,7 @@ def refresh_tokens(request: Request, db: Session):
     # 3️⃣ Validate user
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
+        print("User not found for refresh token")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
@@ -273,6 +279,7 @@ def refresh_tokens(request: Request, db: Session):
         db.add(new_token)
         db.commit()
     except Exception:
+        print("Database operation failed during refresh token rotation")
         db.rollback()
         raise DatabaseOperationException()
 

@@ -54,6 +54,7 @@ def refresh_token_route(
     db: Session = Depends(get_db),
 ):
     try:
+        print("Refreshing tokens using refresh token cookie")
         access_token, refresh_token, user = refresh_tokens(request, db)
 
     
@@ -68,6 +69,8 @@ def refresh_token_route(
             max_age=REFRESH_TOKEN_MAX_AGE,
             path="/",
         )
+
+        print("Issued new access and refresh tokens for user:", user.id)
 
         return {
             "access_token": access_token,
