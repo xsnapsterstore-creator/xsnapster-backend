@@ -26,7 +26,8 @@ app.add_middleware(
         "https://www.xsnapster.store",
         "https://xsnapster.vercel.app",
         "https://dev.xsnapster.store",
-        "http://localhost:5173"
+        "http://localhost:4000",
+        "http://72.61.225.41:3000"
     ],
     allow_credentials=True,
     allow_methods=["*"],
