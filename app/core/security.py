@@ -12,6 +12,12 @@ from models.users import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/verify-otp")
 
+ALLOWED_EMAILS = {
+    "divyanshi.gupta.twink15@gmail.com",
+    "pixelavii007@gmail.com",
+    "aryankannaujia@gmail.com",
+    "md.aameen2710@gmail.com"
+}
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -110,3 +116,18 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
             detail=f"Invalid authentication credentials: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+def get_current_user_with_email_check(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Wrapper dependency that allows access only to specific email IDs.
+    """
+
+    if current_user.email not in ALLOWED_EMAILS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to access this resource",
+        )
+
+    return current_user
