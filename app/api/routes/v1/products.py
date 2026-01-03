@@ -6,6 +6,8 @@ from schemas.products import ProductCreate, ProductResponse, PaginatedProducts
 from typing import List, Optional
 from services.product_service import *
 from services.s3_service import s3_service
+from models.users import User
+from core.security import get_current_user_with_email_check
 
 
 router = APIRouter(prefix="/v1/products", tags=["Products"])
@@ -22,7 +24,8 @@ async def add_product(
     db: Session = Depends(get_db),
     price: float = Form(...),
     discounted_price: Optional[float] = Form(None),
-    dimensions: List[str] = Form([])
+    dimensions: List[str] = Form([]),
+    admin_user: User = Depends(get_current_user_with_email_check)
 ):
     dimensions = dimensions or ["A4","A3","A2","Poster"]
 
@@ -134,7 +137,8 @@ def edit_product(
     category_id: int = Form(None),
     subcategory_id: int = Form(None),
     is_active: bool = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check)
 ):
     """
     Update product fields.
@@ -157,7 +161,7 @@ def edit_product(
 
 
 @router.delete("/{product_id}", response_model=dict)
-def remove_product(product_id: int, db: Session = Depends(get_db)):
+def remove_product(product_id: int, db: Session = Depends(get_db), admin_user: User = Depends(get_current_user_with_email_check)):
     """
     Delete a product and its variations.
     """
