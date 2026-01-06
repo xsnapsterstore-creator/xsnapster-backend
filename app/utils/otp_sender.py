@@ -33,7 +33,7 @@ def send_otp_email(to_email: str, otp: str):
                         <tr>
                             <td align="center" style="padding:20px; background:#000000;">
                                 <img 
-                                    src="https://khnbsjuczeylcjrlrtni.supabase.co/storage/v1/object/public/xsnapster/logo/logo.svg"
+                                    src="https://khnbsjuczeylcjrlrtni.supabase.co/storage/v1/object/public/xsnapster/logo/logo.png"
                                     alt="XSnapster"
                                     width="160"
                                     style="display:block;"
