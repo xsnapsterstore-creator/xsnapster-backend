@@ -4,7 +4,7 @@ from db.session import get_db
 from core.security import get_current_user
 from models.users import User
 from schemas.users import UserProfileSchema
-from utils.users import get_user_default_address, get_user_orders
+from utils.users import get_user_default_address, get_user_orders, get_user_orders_admin
 from schemas.order import OrderSchema
 
 
@@ -35,4 +35,11 @@ def get_user_orders_route(
     db: Session = Depends(get_db)
 ):
     orders = get_user_orders(db, current_user.id)
+    return orders
+
+@router.get("/orders/admin")
+def get_all_user_orders_route(
+    db: Session = Depends(get_db)
+):
+    orders = get_user_orders_admin(db)
     return orders
