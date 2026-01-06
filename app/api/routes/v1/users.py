@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Response, Request
 from sqlalchemy.orm import Session
 from db.session import get_db
-from core.security import get_current_user
+from core.security import get_current_user, get_current_user_with_email_check
 from models.users import User
 from schemas.users import UserProfileSchema
 from utils.users import get_user_default_address, get_user_orders, get_user_orders_admin
@@ -39,7 +39,8 @@ def get_user_orders_route(
 
 @router.get("/orders/admin")
 def get_all_user_orders_route(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check),
 ):
     orders = get_user_orders_admin(db)
     return orders
