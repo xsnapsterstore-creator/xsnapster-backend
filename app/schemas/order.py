@@ -51,4 +51,6 @@ class CreateOrderRequest(BaseModel):
     items: List[CartItem]
     address_id: int
     payment_method: Literal["COD", "RAZORPAY"]
+    idempotency_key: str
+
 

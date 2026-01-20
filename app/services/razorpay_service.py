@@ -22,12 +22,13 @@ class RazorpayService:
         self.key_secret = settings.RAZORPAY_KEY_SECRET
         self.client = razorpay.Client(auth=(self.key_id, self.key_secret))
 
-    def create_order(self, amount: float, currency: str = "INR"):
+    def create_order(self, amount: float, receipt: str, currency: str = "INR"):
         """Only talks to Razorpay, no DB logic."""
         order_data = {
             "amount": int(amount * 100),
             "currency": currency,
             "payment_capture": 1,
+            "receipt": receipt
         }
         return self.client.order.create(order_data)
 

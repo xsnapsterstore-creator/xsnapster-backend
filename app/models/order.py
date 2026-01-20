@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.database import Base  
@@ -20,8 +20,14 @@ class PaymentStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
 
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_user_idempotency_key"),
+    )
+
     id = Column(Integer, primary_key=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+
+    idempotency_key = Column(String(64), nullable=False)
 
     delivery_name = Column(String, nullable=False)
     delivery_phone_number = Column(String, nullable=False)
@@ -32,10 +38,8 @@ class Order(Base):
     delivery_address_type = Column(String, nullable=True)
 
     quantity = Column(Integer, nullable=False, default=1)
-
     amount = Column(Float, nullable=False)
 
-    # Order lifecycle only (not payment)
     order_status = Column(
         SAEnum(OrderStatus, name="order_status"),
         default=OrderStatus.CREATED,
