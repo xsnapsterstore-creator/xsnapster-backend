@@ -2,20 +2,9 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSO
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.database import Base  
-import enum
-
-class OrderStatus(str, enum.Enum):
-    CREATED = "CREATED"        # Order created, payment pending
-    CONFIRMED = "CONFIRMED"    # Payment successful / COD confirmed
-    CANCELLED = "CANCELLED"    # Cancelled by user/system
-    SHIPPED = "SHIPPED"        # Shipped by seller
-    FULFILLED = "FULFILLED"    # Delivered / completed
+from schemas.payment import OrderStatus, PaymentStatus
 
 
-class PaymentStatus(str, enum.Enum):
-    CREATED = "CREATED"   # Payment initiated, pending
-    SUCCESS = "SUCCESS"   # Payment successful
-    FAILED = "FAILED"     # Payment failed
 
 class Order(Base):
     __tablename__ = "orders"

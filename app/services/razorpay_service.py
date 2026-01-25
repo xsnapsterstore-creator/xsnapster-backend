@@ -41,6 +41,20 @@ class RazorpayService:
             hashlib.sha256
         ).hexdigest()
         return hmac.compare_digest(expected, signature)
+    
+
+    def verify_webhook_signature(self, payload: bytes, signature: str) -> bool:
+        """
+        Verify Razorpay webhook signature
+        """
+        expected = hmac.new(
+               settings.RAZORPAY_WEBHOOK_SECRET.encode(),
+               payload,
+               hashlib.sha256
+            ).hexdigest()
+
+        return hmac.compare_digest(expected, signature)
+
 
 
 razorpay_service = RazorpayService()

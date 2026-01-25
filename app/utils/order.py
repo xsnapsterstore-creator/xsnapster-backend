@@ -2,7 +2,8 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from models.order import Order, OrderItem, Payment, OrderStatus, PaymentStatus
+from models.order import Order, OrderItem, Payment
+from schemas.payment import OrderStatus, PaymentStatus
 from models.products import Product
 from services.razorpay_service import razorpay_service
 from utils.pricing import calculate_dimension_pricing_db
