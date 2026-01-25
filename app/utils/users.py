@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from models.users import User, Address
-from models.order import Order, OrderStatus
+from models.order import Order
+from schemas.payment import OrderStatus
 from schemas.order import OrderSchema, OrderItemSchema
 def get_user_default_address(db: Session, user_id: str):
     """

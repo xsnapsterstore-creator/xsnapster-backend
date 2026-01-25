@@ -18,3 +18,4 @@ EXPOSE 8000
 
 # Gunicorn + Uvicorn workers (production)
 CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "1", "--bind", "0.0.0.0:8000"]
+#convert it to multistage dockerfile with build stage and production stage

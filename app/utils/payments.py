@@ -1,8 +1,9 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from models.order import Order, Payment
+from models.order import Payment
 from services.razorpay_service import razorpay_service
+from utils.payment_finalizer import finalize_razorpay_payment
 
 
 def verify_payment_util(
@@ -13,10 +14,11 @@ def verify_payment_util(
     db: Session
 ):
     """
-    Verify Razorpay payment signature and update Payment + Order
+    Verify Razorpay payment signature (client-side confirmation).
+    Final payment state is handled by shared finalizer.
     """
 
-    # 1️⃣ Verify Razorpay signature (SERVER SIDE ONLY)
+    # 1️⃣ Verify Razorpay signature
     if not razorpay_service.verify_signature(
         razorpay_order_id,
         razorpay_payment_id,
@@ -24,52 +26,38 @@ def verify_payment_util(
     ):
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
-    # 2️⃣ Fetch Payment using Razorpay order_id
-    payment = db.query(Payment).filter(
-        Payment.gateway_order_id == razorpay_order_id,
-        Payment.payment_method == "RAZORPAY"
-    ).first()
+    # 2️⃣ Fetch payment
+    payment = (
+        db.query(Payment)
+        .filter(
+            Payment.gateway_order_id == razorpay_order_id,
+            Payment.payment_method == "RAZORPAY"
+        )
+        .first()
+    )
 
     if not payment:
         raise HTTPException(status_code=404, detail="Payment record not found")
 
-    # 3️⃣ Prevent double processing
-    if payment.status == "SUCCESS":
-        return {
-            "status": "success",
-            "message": "Payment already verified",
-            "order_id": payment.order_id
+    # 3️⃣ Authorization check
+    if payment.order.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # 4️⃣ Finalize safely (idempotent)
+    finalized_payment = finalize_razorpay_payment(
+        db=db,
+        razorpay_order_id=razorpay_order_id,
+        razorpay_payment_id=razorpay_payment_id,
+        raw_response={
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_signature": razorpay_signature,
         }
-
-    # 4️⃣ Update payment record
-    payment.transaction_id = razorpay_payment_id
-    payment.signature = razorpay_signature
-    payment.status = "SUCCESS"
-
-    # (optional but recommended)
-    payment.raw_response = {
-        "razorpay_order_id": razorpay_order_id,
-        "razorpay_payment_id": razorpay_payment_id,
-        "razorpay_signature": razorpay_signature
-    }
-
-    # 5️⃣ Update order status
-    order = payment.order
-
-    if order.user_id != user_id:
-        raise HTTPException(
-            status_code=403,
-            detail="Not authorized to verify this payment"
-        )
-    order.order_status = "CONFIRMED"
-
-    db.commit()
-    db.refresh(payment)
-    db.refresh(order)
+    )
 
     return {
         "status": "success",
-        "message": "Payment verified successfully",
-        "order_id": order.id,
-        "payment_id": payment.id
+        "message": "Payment verified",
+        "order_id": finalized_payment.order_id,
+        "payment_id": finalized_payment.id
     }
