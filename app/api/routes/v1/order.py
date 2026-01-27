@@ -14,7 +14,7 @@ router = APIRouter(prefix="/v1/payments", tags=["Payments"])
 def create_order(payload: CreateOrderRequest,
                  db: Session = Depends(get_db),
                  user=Depends(get_current_user)):
-    return OrderService.create_order(db, user.id, [item.dict() for item in payload.items], address_id=payload.address_id, payment_method=payload.payment_method)
+    return OrderService.create_order(db, user.id, [item.dict() for item in payload.items], address_id=payload.address_id, payment_method=payload.payment_method, idempotency_key=payload.idempotency_key)
 
 
 @router.post("/verify-payment")
