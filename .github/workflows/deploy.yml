@@ -16,41 +16,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Login to GHCR
-      run: |
-        echo "${{ github.token }}" | docker login ghcr.io \
-        -u ${{ github.repository_owner }} --password-stdin
+      - name: Login to GHCR
+        run: |
+          echo "${{ github.token }}" | docker login ghcr.io \
+            -u ${{ github.repository_owner }} --password-stdin
 
-    - name: Build Docker image
-      run: |
-        docker build -t $IMAGE_NAME ./app
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME ./app
 
-    - name: Push Docker image
-      run: |
-        docker push $IMAGE_NAME
+      - name: Push Docker image
+        run: |
+          docker push $IMAGE_NAME
 
-    - name: Deploy on VPS
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        envs: IMAGE_NAME
-        script: |
-          echo "IMAGE_NAME=$IMAGE_NAME"
-          docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
+      - name: Deploy via Docker Compose on VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /srv/app
 
-          docker pull $IMAGE_NAME
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
 
-          docker stop ${{ secrets.APP_NAME }} || true
-          docker rm ${{ secrets.APP_NAME }} || true
-
-          docker run -d \
-            --name ${{ secrets.APP_NAME }} \
-            --env-file /root/xsnapster.env \
-            -p 8000:8000 \
-            --restart unless-stopped \
-            $IMAGE_NAME
+            docker compose pull backend
+            docker compose up -d backend
