@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Enum as SAEnum, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, ForeignKey,Boolean,text, DateTime, JSON, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.database import Base  
@@ -36,6 +36,12 @@ class Order(Base):
     )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    
+    user_email_sent = Column(Boolean, server_default=text("false"), nullable=False)
+    admin_notified = Column(Boolean, server_default=text("false"), nullable=False)
+    invoice_generated = Column(Boolean, server_default=text("false"), nullable=False)
+    invoice_url = Column(String, nullable=True)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

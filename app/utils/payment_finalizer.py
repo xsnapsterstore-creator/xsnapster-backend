@@ -16,6 +16,7 @@ def finalize_razorpay_payment(
             Payment.gateway_order_id == razorpay_order_id,
             Payment.payment_method == "RAZORPAY"
         )
+        .with_for_update()
         .first()
     )
 

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
 
     RAZORPAY_WEBHOOK_SECRET: str
 
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
+
+
 
 
     class Config:
