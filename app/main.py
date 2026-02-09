@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from db.base import Base
 from db.session import db, get_db
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
-from api.routes.v1 import auth, products, users, category, address, order
+from api.routes.v1 import auth, products, users, category, address, order, webhook
 from core.error_handlers import setup_exception_handlers
 
 
@@ -41,6 +40,7 @@ app.include_router(category.category_router)
 app.include_router(category.subcategory_router)
 app.include_router(address.router)
 app.include_router(order.router)
+app.include_router(webhook.router)
 
 @app.get("/", tags=["Root"])
 def root():

@@ -1,27 +1,22 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey,Boolean,text, DateTime, JSON, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from db.database import Base  
-import enum
-
-class OrderStatus(str, enum.Enum):
-    CREATED = "CREATED"        # Order created, payment pending
-    CONFIRMED = "CONFIRMED"    # Payment successful / COD confirmed
-    CANCELLED = "CANCELLED"    # Cancelled by user/system
-    SHIPPED = "SHIPPED"        # Shipped by seller
-    FULFILLED = "FULFILLED"    # Delivered / completed
+from schemas.payment import OrderStatus, PaymentStatus
 
 
-class PaymentStatus(str, enum.Enum):
-    CREATED = "CREATED"   # Payment initiated, pending
-    SUCCESS = "SUCCESS"   # Payment successful
-    FAILED = "FAILED"     # Payment failed
 
 class Order(Base):
     __tablename__ = "orders"
 
+    __table_args__ = (
+        UniqueConstraint("user_id", "idempotency_key", name="uq_user_idempotency_key"),
+    )
+
     id = Column(Integer, primary_key=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"))
+
+    idempotency_key = Column(String(64), nullable=False)
 
     delivery_name = Column(String, nullable=False)
     delivery_phone_number = Column(String, nullable=False)
@@ -32,10 +27,8 @@ class Order(Base):
     delivery_address_type = Column(String, nullable=True)
 
     quantity = Column(Integer, nullable=False, default=1)
-
     amount = Column(Float, nullable=False)
 
-    # Order lifecycle only (not payment)
     order_status = Column(
         SAEnum(OrderStatus, name="order_status"),
         default=OrderStatus.CREATED,
@@ -43,6 +36,12 @@ class Order(Base):
     )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    
+    user_email_sent = Column(Boolean, server_default=text("false"), nullable=False)
+    admin_notified = Column(Boolean, server_default=text("false"), nullable=False)
+    invoice_generated = Column(Boolean, server_default=text("false"), nullable=False)
+    invoice_url = Column(String, nullable=True)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")

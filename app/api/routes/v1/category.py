@@ -6,6 +6,9 @@ from db.session import get_db
 from services.category_service import *
 from typing import Optional, List, Any
 from services.s3_service import s3_service
+from models.users import User
+from core.security import get_current_user_with_email_check
+
 
 
 
@@ -18,7 +21,8 @@ async def add_category(
     name: str = Form(...),
     one_liner: Optional[str] = Form(None),
     images: List[UploadFile] = File([]),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check),
 ):
     image_links = []
     for image in images:
@@ -48,12 +52,13 @@ def edit_category(
     category_id: int,
     name: str = Form(None),
     one_liner: str = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check),
 ):
     return update_category(db, category_id, name, one_liner)
 
 @category_router.delete("/{category_id}")
-def remove_category(category_id: int, db: Session = Depends(get_db)):
+def remove_category(category_id: int, db: Session = Depends(get_db), admin_user: User = Depends(get_current_user_with_email_check)):
     return delete_category(db, category_id)
 
 ########################################################################################   
@@ -68,9 +73,9 @@ async def add_subcategories(
     subcategory_names: List[str] = Form(...),
     images: Optional[List[Any]] = File(default=None),   
     db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check),
 ):
 
-    print("RAW images:", images)
 
     # Clean image inputs
     valid_images = []
@@ -84,7 +89,6 @@ async def add_subcategories(
            if hasattr(item, 'filename'):
                 valid_images.append(item)
 
-    print("VALID UploadFiles:", valid_images)
 
     image_links = []
     for image in valid_images:
@@ -112,7 +116,6 @@ async def add_subcategories(
     }
 @subcategory_router.get("/")
 def list_subcategories(db: Session = Depends(get_db)):
-    print('here')
     return get_all_subcategories(db)
 
 @subcategory_router.get("/{category_id}")
@@ -123,12 +126,13 @@ def list_subcategories_for_category(category_id: int, db: Session = Depends(get_
 def edit_subcategory(
     subcategory_id: int,
     name: str = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_current_user_with_email_check)
 ):
     return update_subcategory(db, subcategory_id, name)
 
 @subcategory_router.delete("/{subcategory_id}")
-def remove_subcategory(subcategory_id: int, db: Session = Depends(get_db)):
+def remove_subcategory(subcategory_id: int, db: Session = Depends(get_db), admin_user: User = Depends(get_current_user_with_email_check)):
     return delete_subcategory(db, subcategory_id)
 
 

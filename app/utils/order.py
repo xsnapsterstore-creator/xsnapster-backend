@@ -1,8 +1,9 @@
 from typing import List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-
-from models.order import Order, OrderItem, Payment, OrderStatus, PaymentStatus
+from sqlalchemy.exc import IntegrityError
+from models.order import Order, OrderItem, Payment
+from schemas.payment import OrderStatus, PaymentStatus
 from models.products import Product
 from services.razorpay_service import razorpay_service
 from utils.pricing import calculate_dimension_pricing_db
@@ -17,10 +18,41 @@ class OrderService:
         user_id: str,
         items: List[dict],
         address_id: int,
-        payment_method: str
+        payment_method: str,
+        idempotency_key: str,
     ):
         if not items:
             raise HTTPException(400, "Cart cannot be empty")
+
+        # ⭐ STEP 1: EARLY idempotency check
+        existing_order = (
+            db.query(Order)
+            .filter(
+                Order.user_id == user_id,
+                Order.idempotency_key == idempotency_key
+            )
+            .first()
+        )
+
+        if existing_order:
+            payment = existing_order.payment
+            return {
+                "order_id": existing_order.id,
+                "amount": existing_order.amount,
+                "currency": "INR",
+                "payment_method": payment.payment_method,
+                "payment_status": payment.status,
+                "payment_gateway_order_id": payment.gateway_order_id,
+                "items": [
+                    {
+                        "product_id": oi.product_id,
+                        "quantity": oi.quantity,
+                        "price": oi.price,
+                        "dimension": oi.dimension
+                    }
+                    for oi in existing_order.items
+                ]
+            }
 
         # 1️⃣ Fetch & validate address
         address = db.query(Address).filter(
@@ -32,12 +64,14 @@ class OrderService:
             raise HTTPException(404, "Address not found")
 
         # 2️⃣ Validate items & pricing
-        priced_items, order_total, total_quantity = OrderService._validate_and_price_items(db, items)
+        priced_items, order_total, total_quantity = (
+            OrderService._validate_and_price_items(db, items)
+        )
 
-
-        # 3️⃣ Create order with address SNAPSHOT
+        # 3️⃣ Create order
         order = Order(
             user_id=user_id,
+            idempotency_key=idempotency_key,
             delivery_name=address.name,
             delivery_phone_number=address.phone_number,
             delivery_address_line=address.address_line,
@@ -46,7 +80,7 @@ class OrderService:
             delivery_zip_code=address.zip_code,
             delivery_address_type=address.address_type,
             amount=order_total,
-            quantity=total_quantity,   # ✅ NEW
+            quantity=total_quantity,
             order_status=OrderStatus.CREATED
         )
 
@@ -65,7 +99,33 @@ class OrderService:
             amount=order_total
         )
 
-        db.commit()
+        # ⭐ STEP 6: COMMIT WITH RACE CONDITION PROTECTION
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+
+            # Another request already created this order
+            order = (
+                db.query(Order)
+                .filter(
+                    Order.user_id == user_id,
+                    Order.idempotency_key == idempotency_key
+                )
+                .first()
+            )
+
+            payment = order.payment
+
+            return {
+                "order_id": order.id,
+                "amount": order.amount,
+                "currency": "INR",
+                "payment_method": payment.payment_method,
+                "payment_status": payment.status,
+                "payment_gateway_order_id": payment.gateway_order_id,
+            }
+
         db.refresh(order)
 
         return {
@@ -155,7 +215,7 @@ class OrderService:
             }
 
         if payment_method == "RAZORPAY":
-            razorpay_order = razorpay_service.create_order(amount)
+            razorpay_order = razorpay_service.create_order(amount, receipt=str(order.id))   
 
             print("Created Razorpay order:", razorpay_order)
 
