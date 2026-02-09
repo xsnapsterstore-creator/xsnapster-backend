@@ -43,5 +43,5 @@ jobs:
 
             docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
 
-            docker compose pull backend
-            docker compose up -d backend
+            docker compose pull backend worker
+            docker compose up -d backend worker
