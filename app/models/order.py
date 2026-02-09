@@ -38,10 +38,10 @@ class Order(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     
-    user_email_sent = Column(Boolean, server_default=text("false"), nullable=False)
-    admin_notified = Column(Boolean, server_default=text("false"), nullable=False)
-    invoice_generated = Column(Boolean, server_default=text("false"), nullable=False)
-    invoice_url = Column(String, nullable=True)
+    # user_email_sent = Column(Boolean, server_default=text("false"), nullable=False)
+    # admin_notified = Column(Boolean, server_default=text("false"), nullable=False)
+    # invoice_generated = Column(Boolean, server_default=text("false"), nullable=False)
+    # invoice_url = Column(String, nullable=True)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
