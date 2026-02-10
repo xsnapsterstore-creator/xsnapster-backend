@@ -45,3 +45,5 @@ jobs:
 
             docker compose pull backend worker
             docker compose up -d backend worker
+            docker exec nginx nginx -s reload
+
