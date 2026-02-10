@@ -118,7 +118,7 @@ def get_user_orders_admin(db: Session):
             # payment
             "payment": order.payment.status if order.payment else None,
             "paid_amount": order.payment.amount if order.payment else None,
-            "payment_method": "Razorpay" if order.payment else None,
+            "payment_method": order.payment.payment_method if order.payment.payment_method else "Razorpay",
 
             # the detailed product list
             "items": items_data
