@@ -11,7 +11,7 @@ def send_admin_order_notification(admin_email: str, order):
 
         <p><strong>Order ID:</strong> {order.id}</p>
         <p><strong>Customer:</strong> {order.user.email}</p>
-        <p><strong>Total Amount:</strong> ${order.total_amount}</p>
+        <p><strong>Total Amount:</strong> ${order.amount}</p>
         <p><strong>Status:</strong> {order.status}</p>
     """
 
@@ -21,8 +21,8 @@ def send_admin_order_notification(admin_email: str, order):
     New Order Received
 
     Order ID: {order.id}
-    Customer: {order.user_email}
-    Total: ${order.total_amount}
+    Customer: {order.user.email}
+    Total: ${order.amount}
     Status: {order.status}
     """
 
