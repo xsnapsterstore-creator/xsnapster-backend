@@ -12,7 +12,7 @@ def send_admin_order_notification(admin_email: str, order):
         <p><strong>Order ID:</strong> {order.id}</p>
         <p><strong>Customer:</strong> {order.user.email}</p>
         <p><strong>Total Amount:</strong> ${order.amount}</p>
-        <p><strong>Status:</strong> {order.status}</p>
+        <p><strong>Status:</strong> {order.order_status}</p>
     """
 
     html_body = build_base_template("New Order Notification", content)
@@ -23,7 +23,7 @@ def send_admin_order_notification(admin_email: str, order):
     Order ID: {order.id}
     Customer: {order.user.email}
     Total: ${order.amount}
-    Status: {order.status}
+    Status: {order.order_status}
     """
 
     send_email(admin_email, subject, html_body, text_body)
