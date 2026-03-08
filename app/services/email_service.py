@@ -22,7 +22,7 @@ def send_admin_order_notification(admin_email: str, order):
 
     Order ID: {order.id}
     Customer: {order.user.email}
-    Total: ${order.amount}
+    Total: ₹{order.amount}
     Status: {order.order_status}
     """
 
