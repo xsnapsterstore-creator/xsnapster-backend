@@ -34,4 +34,8 @@ def finalize_razorpay_payment(
     payment.order.order_status = OrderStatus.CONFIRMED
 
     db.commit()
+    from tasks.process_order import process_confirmed_order
+    from tasks.notify_admin import notify_admin
+    process_confirmed_order.send(payment.order_id)
+    notify_admin.send(payment.order_id)
     return payment

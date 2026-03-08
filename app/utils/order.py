@@ -8,6 +8,7 @@ from models.products import Product
 from services.razorpay_service import razorpay_service
 from utils.pricing import calculate_dimension_pricing_db
 from models.users import Address
+from db.session import get_db_session
 
 
 class OrderService:
@@ -128,6 +129,14 @@ class OrderService:
 
         db.refresh(order)
 
+        if payment_method=="COD":
+            from tasks.process_order import  process_confirmed_order
+            from tasks.notify_admin import notify_admin
+
+            process_confirmed_order.send(order.id)
+            notify_admin.send(order.id)
+
+
         return {
             "order_id": order.id,
             "amount": order_total,
@@ -235,3 +244,12 @@ class OrderService:
             }
 
         raise HTTPException(400, f"Unsupported payment method: {payment_method}")
+
+
+
+
+
+
+def get_order_by_id(order_id: int, db: Session):
+
+    return db.query(Order).filter(Order.id == order_id).first()

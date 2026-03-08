@@ -5,7 +5,7 @@ from models.users import User
 from models.users import OTP
 from models.refresh_token import RefreshToken
 from core.security import create_access_token, create_refresh_token, verify_token
-from utils.otp_sender import send_otp_email, validate_email
+from .email_service import send_otp_email
 from email_validator import validate_email, EmailNotValidError
 from sqlalchemy.exc import SQLAlchemyError
 from core.exceptions import (

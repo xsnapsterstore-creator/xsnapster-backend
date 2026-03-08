@@ -54,6 +54,15 @@ class S3Service:
             return False
         
         return True
+    
+    def _validate_pdf_file(self, file: UploadFile) -> bool:
+        """Validate if uploaded file is a PDF"""
+        if not file.filename:
+            return False
+        
+        file_ext = os.path.splitext(file.filename.lower())[1]
+        return file_ext == ".pdf"
+
 
     def _generate_unique_filename(self, original_filename: str, prefix: str = "inventory") -> str:
         """Generate unique filename for S3 upload"""
@@ -278,6 +287,98 @@ class S3Service:
         except Exception as e:
             logger.error(f"Failed to generate presigned URL: {str(e)}")
             return s3_url  # Return original URL as fallback
+        
+    def upload_pdf(self, file: UploadFile, prefix: str = "documents") -> str:
+        """
+        Upload PDF file to S3 bucket (publicly accessible)
+
+        Args:
+        file: FastAPI UploadFile
+        prefix: folder name in bucket (ex: invoices, documents)
+
+        Returns:
+           Public S3 URL
+        """
+        if not file or not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        if not self._validate_pdf_file(file):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid file type. Only PDF files are allowed"
+            )
+        
+        try:
+            file_content = file.read()
+
+            if len(file_content) > 20 * 1024 * 1024:
+                raise HTTPException(
+                status_code=400,
+                detail="File too large. Maximum size is 20MB"
+                )
+            unique_id = str(uuid.uuid4())
+            s3_key = f"{prefix}/{unique_id}.pdf"
+
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=s3_key,
+                Body=file_content,
+                ContentType="application/pdf",
+                CacheControl="max-age=31536000",
+                Metadata={
+                "original_filename": file.filename,
+                "upload_type": "pdf_document"
+                }
+                )
+            
+            pdf_url = f"{self.bucket_url}/{s3_key}"
+
+            return pdf_url
+        
+        except ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            raise HTTPException(status_code=500, detail=f"PDF upload failed with error_code: {error_code}")
+        
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="PDF upload failed")
+        
+
+    def upload_invoice_pdf(self, pdf_bytes: bytes, invoice_number: str) -> str:
+        """
+        Upload generated invoice PDF to S3
+
+        Args:
+        pdf_bytes: PDF binary data
+        invoice_number: invoice identifier
+
+        Returns:
+        public S3 URL
+        """
+        try:
+           s3_key = f"invoices/{invoice_number}.pdf"
+
+           self.s3_client.put_object(
+            Bucket=self.bucket_name,
+            Key=s3_key,
+            Body=pdf_bytes,
+            ContentType="application/pdf",
+            CacheControl="max-age=31536000",
+            Metadata={
+                "invoice_number": invoice_number,
+                "type": "invoice"
+            }
+            )
+
+           invoice_url = f"{self.bucket_url}/{s3_key}"
+           
+           return invoice_url
+        
+        except Exception as e:
+           raise
+
+  
+
+                    
 
 
 s3_service = S3Service()

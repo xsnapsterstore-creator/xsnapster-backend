@@ -1,6 +1,4 @@
-import dramatiq
-from core.dramatiq import broker
+import core.dramatiq
 
-@dramatiq.actor
-def test_task(message: str):
-    print(f"[WORKER] received: {message}")
+import tasks.process_order
+import tasks.notify_admin
