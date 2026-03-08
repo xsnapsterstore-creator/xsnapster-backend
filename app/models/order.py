@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey,Boolean,text, DateTime, JSON, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from db.database import Base  
+from db.base import Base  
 from schemas.payment import OrderStatus, PaymentStatus
 
 
