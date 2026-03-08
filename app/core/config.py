@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: float
     EMAIL_USER: str
     EMAIL_PASSWORD: str
+    ADMIN_EMAIL: str
     SMTP_SERVER: str
     SMTP_PORT: int
 
