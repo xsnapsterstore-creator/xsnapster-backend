@@ -22,6 +22,7 @@ def notify_admin(order_id: int):
 
         send_admin_order_notification(
             settings.ADMIN_EMAIL,
+            settings.ORDER_MAIL,
             order
         )
 

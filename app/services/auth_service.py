@@ -85,7 +85,7 @@ def request_otp(db, identifier: str):
 
         try:
             if user.email:
-                send_otp_email(user.email, otp_code)
+                send_otp_email(user.email, settings.OTP_MAIL, otp_code)
             elif user.phone_number:
                 send_otp_sms(user.phone_number, otp_code)
         except Exception as e:

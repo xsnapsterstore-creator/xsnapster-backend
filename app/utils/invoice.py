@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from num2words import num2words
 
-IGST_RATE = Decimal("0.05")
 
 styles = getSampleStyleSheet()
 title_style = styles["Heading1"]
@@ -17,7 +16,7 @@ bold = styles["Heading4"]
 
 
 def format_currency(v):
-    return f"{Decimal(v):,.2f}"
+    return f"₹{Decimal(v):,.2f}"
 
 
 def number_to_words(amount):
@@ -62,7 +61,7 @@ def build_invoice_pdf(order):
 
     invoice_info = Paragraph(
         f"""
-        <b>TAX INVOICE</b><br/><br/>
+        <b>INVOICE</b><br/><br/>
         Invoice Date : {invoice_date}<br/>
         Due Date : {invoice_date}<br/>
         Invoice # : {order.invoice_number}
@@ -104,7 +103,7 @@ def build_invoice_pdf(order):
     # ====================================================
 
     data = [
-        ["#", "Item & Description", "Qty", "Rate", "IGST", "Amount"]
+        ["#", "Item & Description", "Qty", "Rate", "Amount"]
     ]
 
     subtotal = Decimal("0.00")
@@ -123,25 +122,24 @@ def build_invoice_pdf(order):
         description = Paragraph(f"{title}{dimension}", normal)
 
         data.append([
-            i,
-            description,
-            item.quantity,
-            format_currency(rate),
-            "5%",
-            format_currency(amount)
+           i,
+           description,
+           item.quantity,
+           format_currency(rate),
+           format_currency(amount)
         ])
 
     table = Table(
-        data,
-        colWidths=[30, 260, 60, 70, 60, 80]
-    )
+    data,
+    colWidths=[30, 320, 60, 80, 90]
+)
 
     table.setStyle(TableStyle([
 
         ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
         ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
 
-        ("ALIGN", (2,1), (-1,-1), "RIGHT"),
+        ("ALIGN", (2,1), (4,-1), "RIGHT"),
 
         ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
 
@@ -155,26 +153,23 @@ def build_invoice_pdf(order):
     # TOTALS
     # ====================================================
 
-    igst = subtotal * IGST_RATE
-    total = subtotal + igst
+    total = subtotal
 
     totals_table = Table(
-        [
-            ["Sub Total", format_currency(subtotal)],
-            ["IGST (5%)", format_currency(igst)],
-            ["Total", format_currency(total)],
-            ["Balance Due", format_currency(total)]
-        ],
-        colWidths=[400, 120]
+    [
+        ["Sub Total", format_currency(subtotal)],
+        ["Total", format_currency(total)],
+        ["Balance Due", format_currency(total)]
+    ],
+    colWidths=[400, 120]
     )
 
     totals_table.setStyle(TableStyle([
 
-        ("ALIGN", (1,0), (1,-1), "RIGHT"),
-        ("FONTNAME", (0,-2), (-1,-2), "Helvetica-Bold"),
-        ("FONTNAME", (0,-1), (-1,-1), "Helvetica-Bold"),
+    ("ALIGN", (1,0), (1,-1), "RIGHT"),
+    ("FONTNAME", (0,-1), (-1,-1), "Helvetica-Bold"),
 
-        ("LINEABOVE", (0,-2), (-1,-2), 1, colors.black)
+    ("LINEABOVE", (0,-1), (-1,-1), 1, colors.black)
     ]))
 
     elements.append(totals_table)
@@ -193,23 +188,9 @@ def build_invoice_pdf(order):
 
     elements.append(Spacer(1, 30))
 
-    # ====================================================
-    # BANK DETAILS
-    # ====================================================
 
-    bank = Paragraph(
-        """
-        <b>Company's Bank Details</b><br/>
-        Bank Name: Central Bank of India<br/>
-        A/c No: 5931529847<br/>
-        IFSC Code: CBIN0283150
-        """,
-        normal
-    )
 
-    elements.append(bank)
-
-    elements.append(Spacer(1, 40))
+   
 
     # ====================================================
     # FOOTER

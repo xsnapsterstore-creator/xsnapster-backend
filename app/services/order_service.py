@@ -108,6 +108,7 @@ from utils.invoice import (
 
 from services.s3_service import s3_service
 from services.email_service import send_order_confirmation_email
+from core.config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -197,6 +198,7 @@ class OrderFulfillmentService:
 
                 send_order_confirmation_email(
                     order.user.email,
+                    settings.NOREPLY_MAIL,
                     order=order,
                     invoice_bytes=pdf_bytes
                 )

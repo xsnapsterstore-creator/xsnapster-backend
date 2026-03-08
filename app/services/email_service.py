@@ -2,9 +2,9 @@ from utils.email import send_email, build_base_template
 
 
 
-def send_admin_order_notification(admin_email: str, order):
+def send_admin_order_notification(admin_email: str, from_email: str, order):
 
-    subject = f"New XSnapster Order Received - #{order.id}"
+    subject = f"New XSNAPSTER Order Received - #{order.id}"
 
     content = f"""
         <h2>New Order Received</h2>
@@ -26,18 +26,19 @@ def send_admin_order_notification(admin_email: str, order):
     Status: {order.order_status}
     """
 
-    send_email(admin_email, subject, html_body, text_body)
+    send_email(admin_email, from_email, subject, html_body, text_body)
 
 
 
 
 def send_order_confirmation_email(
     user_email: str,
+    from_email: str,
     order,
     invoice_bytes: bytes | None = None
 ):
 
-    subject = f"XSnapster Order Confirmation #{order.id}"
+    subject = f"XSNAPSTER Order Confirmation #{order.id}"
 
     content = f"""
         <h2>Thank You for Your Order 🎉</h2>
@@ -72,6 +73,7 @@ def send_order_confirmation_email(
 
     send_email(
         user_email,
+        from_email,
         subject,
         html_body,
         text_body,
@@ -81,9 +83,9 @@ def send_order_confirmation_email(
 
 
 
-def send_otp_email(to_email: str, otp: str):
+def send_otp_email(to_email: str, from_email: str, otp: str):
 
-    subject = "Your XSnapster One-Time Password (OTP)"
+    subject = "Your XSNAPSTER One-Time Password (OTP)"
 
     content = f"""
         <h2>Verify Your Email</h2>
@@ -105,11 +107,11 @@ def send_otp_email(to_email: str, otp: str):
         <p>This OTP is valid for <strong>5 minutes</strong>.</p>
     """
 
-    html_body = build_base_template("XSnapster OTP", content)
+    html_body = build_base_template("XSNAPSTER OTP", content)
 
     text_body = f"""
-    Your XSnapster OTP is: {otp}
+    Your XSNAPSTER OTP is: {otp}
     Valid for 5 minutes.
     """
 
-    send_email(to_email, subject, html_body, text_body)
+    send_email(to_email, from_email, subject, html_body, text_body)

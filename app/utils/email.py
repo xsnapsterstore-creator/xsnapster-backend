@@ -11,6 +11,7 @@ from core.config import settings
 
 def send_email(
     to_email: str,
+    from_email: str,
     subject: str,
     html_body: str,
     text_body: str,
@@ -31,7 +32,7 @@ def send_email(
 
     msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
-    msg["From"] = settings.EMAIL_USER
+    msg["From"] = from_email
     msg["To"] = to_email
 
     # Alternative body (text + html)

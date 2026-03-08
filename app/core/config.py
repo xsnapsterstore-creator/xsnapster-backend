@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     REDIS_PORT: int
     REDIS_DB: int
 
+    OTP_MAIL: str
+    ORDER_MAIL: str
+    NOREPLY_MAIL: str
+
 
 
 
