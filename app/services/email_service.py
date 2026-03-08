@@ -10,7 +10,7 @@ def send_admin_order_notification(admin_email: str, order):
         <h2>New Order Received</h2>
 
         <p><strong>Order ID:</strong> {order.id}</p>
-        <p><strong>Customer:</strong> {order.user_email}</p>
+        <p><strong>Customer:</strong> {order.user.email}</p>
         <p><strong>Total Amount:</strong> ${order.total_amount}</p>
         <p><strong>Status:</strong> {order.status}</p>
     """
