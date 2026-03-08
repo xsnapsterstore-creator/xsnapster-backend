@@ -4,6 +4,7 @@ from db.session import db, get_db
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes.v1 import auth, products, users, category, address, order, webhook
 from core.error_handlers import setup_exception_handlers
+import core.dramatiq
 
 
 
