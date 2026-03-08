@@ -16,7 +16,7 @@ bold = styles["Heading4"]
 
 
 def format_currency(v):
-    return f"INR{Decimal(v):,.2f}"
+    return f"INR {Decimal(v):,.2f}"
 
 
 def number_to_words(amount):
