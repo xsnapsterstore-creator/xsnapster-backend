@@ -6,12 +6,39 @@ from models.order import Order, OrderItem, Payment
 from schemas.payment import OrderStatus, PaymentStatus
 from models.products import Product
 from services.razorpay_service import razorpay_service
+from services.delivery_charge_service import (
+    DeliveryChargePolicy,
+    build_pricing_breakdown,
+)
 from utils.pricing import calculate_dimension_pricing_db
 from models.users import Address
 from db.session import get_db_session
+from core.config import settings
 
 
 class OrderService:
+
+    @staticmethod
+    def _get_delivery_policy() -> DeliveryChargePolicy:
+        return DeliveryChargePolicy(
+            base_charge=settings.DELIVERY_BASE_CHARGE,
+            free_delivery_threshold=settings.DELIVERY_FREE_THRESHOLD,
+        )
+
+    @staticmethod
+    def _build_existing_order_pricing_summary(order: Order) -> dict:
+        """
+        Reconstruct pricing split from persisted order snapshot.
+        This keeps idempotent responses stable without relying on mutable state.
+        """
+        items_subtotal = round(float(order.items_subtotal or 0.0), 2)
+        delivery_charge = round(float(order.delivery_charge or 0.0), 2)
+
+        return {
+            "items_subtotal": items_subtotal,
+            "delivery_charge": max(delivery_charge, 0.0),
+            "amount": float(order.amount),
+        }
 
     @staticmethod
     def create_order(
@@ -37,9 +64,13 @@ class OrderService:
 
         if existing_order:
             payment = existing_order.payment
+            pricing_summary = OrderService._build_existing_order_pricing_summary(
+                existing_order
+            )
+
             return {
                 "order_id": existing_order.id,
-                "amount": existing_order.amount,
+                **pricing_summary,
                 "currency": "INR",
                 "payment_method": payment.payment_method,
                 "payment_status": payment.status,
@@ -65,9 +96,16 @@ class OrderService:
             raise HTTPException(404, "Address not found")
 
         # 2️⃣ Validate items & pricing
-        priced_items, order_total, total_quantity = (
+        priced_items, items_subtotal, total_quantity = (
             OrderService._validate_and_price_items(db, items)
         )
+
+        pricing_summary = build_pricing_breakdown(
+            subtotal=items_subtotal,
+            policy=OrderService._get_delivery_policy(),
+        )
+
+        order_total = pricing_summary["amount"]
 
         # 3️⃣ Create order
         order = Order(
@@ -80,6 +118,8 @@ class OrderService:
             delivery_state=address.state,
             delivery_zip_code=address.zip_code,
             delivery_address_type=address.address_type,
+            items_subtotal=pricing_summary["items_subtotal"],
+            delivery_charge=pricing_summary["delivery_charge"],
             amount=order_total,
             quantity=total_quantity,
             order_status=OrderStatus.CREATED
@@ -120,7 +160,7 @@ class OrderService:
 
             return {
                 "order_id": order.id,
-                "amount": order.amount,
+                **OrderService._build_existing_order_pricing_summary(order),
                 "currency": "INR",
                 "payment_method": payment.payment_method,
                 "payment_status": payment.status,
@@ -139,7 +179,7 @@ class OrderService:
 
         return {
             "order_id": order.id,
-            "amount": order_total,
+            **pricing_summary,
             "currency": "INR",
             "payment_method": payment_method,
             **payment_response,

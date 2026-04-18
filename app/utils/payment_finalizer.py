@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from models.order import Payment
 from schemas.payment import PaymentStatus, OrderStatus
 
@@ -22,6 +23,17 @@ def finalize_razorpay_payment(
 
     if not payment:
         return None
+
+    expected_total = round(
+        float(payment.order.items_subtotal) + float(payment.order.delivery_charge),
+        2,
+    )
+
+    if round(float(payment.order.amount), 2) != expected_total:
+        raise HTTPException(status_code=409, detail="Order amount breakdown mismatch")
+
+    if round(float(payment.amount), 2) != expected_total:
+        raise HTTPException(status_code=409, detail="Payment amount mismatch")
 
     # 🔒 Idempotency guard
     if payment.status == PaymentStatus.SUCCESS:

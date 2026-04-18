@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     ORDER_MAIL: str
     NOREPLY_MAIL: str
 
+    DELIVERY_BASE_CHARGE: float = 70.0
+    DELIVERY_FREE_THRESHOLD: float = 500.0
+
 
 
 

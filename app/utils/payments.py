@@ -10,6 +10,7 @@ def verify_payment_util(
     razorpay_order_id: str,
     razorpay_payment_id: str,
     razorpay_signature: str,
+    order_id: int,
     user_id: str,
     db: Session
 ):
@@ -39,11 +40,26 @@ def verify_payment_util(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment record not found")
 
+    if payment.order_id != order_id:
+        raise HTTPException(status_code=400, detail="Order mismatch for payment")
+
     # 3️⃣ Authorization check
     if payment.order.user_id != user_id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    # 4️⃣ Finalize safely (idempotent)
+    # 4️⃣ Delivery-inclusive amount integrity check
+    expected_total = round(
+        float(payment.order.items_subtotal) + float(payment.order.delivery_charge),
+        2,
+    )
+
+    if round(float(payment.order.amount), 2) != expected_total:
+        raise HTTPException(status_code=409, detail="Order amount breakdown mismatch")
+
+    if round(float(payment.amount), 2) != expected_total:
+        raise HTTPException(status_code=409, detail="Payment amount mismatch")
+
+    # 5️⃣ Finalize safely (idempotent)
     finalized_payment = finalize_razorpay_payment(
         db=db,
         razorpay_order_id=razorpay_order_id,
@@ -54,6 +70,9 @@ def verify_payment_util(
             "razorpay_signature": razorpay_signature,
         }
     )
+
+    if not finalized_payment:
+        raise HTTPException(status_code=404, detail="Payment record not found")
 
     return {
         "status": "success",

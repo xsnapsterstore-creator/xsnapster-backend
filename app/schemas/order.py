@@ -19,12 +19,12 @@ class VerifyPaymentRequest(BaseModel):
 class OrderItemSchema(BaseModel):
     product_id: int
     title: str
-    image: Optional[str]
+    image: Optional[str] = None
     ordered_price: float
     quantity: Optional[int] = 1
     dimension: str
-    category: Optional[str]
-    subcategory: Optional[str]
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -33,15 +33,17 @@ class OrderItemSchema(BaseModel):
 class OrderSchema(BaseModel):
     id: int
     items: List[OrderItemSchema]
-    razorpay_order_id: Optional[str]
+    razorpay_order_id: Optional[str] = None
+    items_subtotal: Optional[float] = None
+    delivery_charge: Optional[float] = None
     amount: float
     status: str
     created_at: datetime
     total_items: int
     total_cost: float
-    payment: Optional[str]
-    paid_amount: Optional[float]
-    payment_method: Optional[str]
+    payment: Optional[str] = None
+    paid_amount: Optional[float] = None
+    payment_method: Optional[str] = None
 
     class Config:
         from_attributes = True

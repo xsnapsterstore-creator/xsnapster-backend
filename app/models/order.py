@@ -27,6 +27,8 @@ class Order(Base):
     delivery_address_type = Column(String, nullable=True)
 
     quantity = Column(Integer, nullable=False, default=1)
+    items_subtotal = Column(Float, nullable=False, server_default=text("0"))
+    delivery_charge = Column(Float, nullable=False, server_default=text("0"))
     amount = Column(Float, nullable=False)
 
     order_status = Column(
