@@ -14,7 +14,6 @@ REFRESH_TOKEN_MAX_AGE = (6 * 24 + 23) * 60 * 60
 # 1️⃣ Request OTP
 @router.post("/request-otp")
 def request_otp_route(payload: RequestOTP, db: Session = Depends(get_db)):
-    print( "Requesting OTP for identifier:", payload.identifier)
     return request_otp(db, payload.identifier)
 
 
@@ -24,7 +23,6 @@ def verify_otp_route(payload: OTPVerifyRequest, response: Response, db: Session 
     access_token, refresh_token, user = verify_otp_and_issue_tokens(db, payload.identifier, payload.otp)
 
     # Set refresh token in HttpOnly cookie
-    print("Setting refresh token cookie", refresh_token)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -101,7 +99,6 @@ def logout_route(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    print("Logging out user:", current_user.id)
     return logout_user(response, db, current_user)
 
 

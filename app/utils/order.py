@@ -266,7 +266,6 @@ class OrderService:
         if payment_method == "RAZORPAY":
             razorpay_order = razorpay_service.create_order(amount, receipt=str(order.id))   
 
-            print("Created Razorpay order:", razorpay_order)
 
             payment = Payment(
                 order_id=order.id,

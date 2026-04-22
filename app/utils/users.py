@@ -48,7 +48,6 @@ def get_user_orders(db: Session, user_id: str):
                 "quantity": item.quantity
             })
 
-        print("this is item data", items_data)
 
         order_list.append({
             "id": order.id,

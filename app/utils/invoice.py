@@ -215,7 +215,5 @@ def build_invoice_pdf(order):
     return buffer.read()
 
 def generate_invoice_number(order_id: int) -> str:
-    print(f"Generating invoice number for order {order_id}")
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
-    print(f"Generated invoice number: INV-{today}-{order_id}")
     return f"INV-{today}-{order_id}"

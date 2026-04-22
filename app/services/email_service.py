@@ -11,7 +11,7 @@ def send_admin_order_notification(admin_email: str, from_email: str, order):
 
         <p><strong>Order ID:</strong> {order.id}</p>
         <p><strong>Customer:</strong> {order.user.email}</p>
-        <p><strong>Total Amount:</strong> ${order.amount}</p>
+        <p><strong>Total Amount:</strong> ₹{order.amount}</p>
         <p><strong>Status:</strong> {order.order_status}</p>
     """
 
