@@ -28,6 +28,17 @@ class Order(Base):
 
     quantity = Column(Integer, nullable=False, default=1)
     items_subtotal = Column(Float, nullable=False, server_default=text("0"))
+    subtotal_before_coupon = Column(Float, nullable=True)
+    coupon_discount_amount = Column(Float, nullable=False, server_default=text("0"))
+    subtotal_after_coupon = Column(Float, nullable=True)
+
+    coupon_id = Column(Integer, ForeignKey("coupons.id", ondelete="SET NULL"), nullable=True)
+    coupon_code = Column(String(64), nullable=True)
+    coupon_type = Column(String(50), nullable=True)
+    coupon_required_qty = Column(Integer, nullable=True)
+    coupon_free_qty = Column(Integer, nullable=True)
+    coupon_matched_dimension = Column(String(50), nullable=True)
+
     delivery_charge = Column(Float, nullable=False, server_default=text("0"))
     amount = Column(Float, nullable=False)
 
@@ -46,6 +57,8 @@ class Order(Base):
     invoice_number = Column(String(50), nullable=True, unique=True)
 
     user = relationship("User", back_populates="orders")
+    coupon = relationship("Coupon", back_populates="orders")
+    coupon_usage = relationship("CouponUsage", back_populates="order", uselist=False)
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     payment = relationship("Payment", uselist=False, back_populates="order")
 

@@ -25,6 +25,7 @@ class User(Base):
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     addresses = relationship("Address", back_populates="user", cascade="all, delete")
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
+    coupon_usages = relationship("CouponUsage", back_populates="user", cascade="all, delete-orphan")
 
 
 

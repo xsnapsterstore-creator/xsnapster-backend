@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -10,6 +10,7 @@ from services.delivery_charge_service import (
     DeliveryChargePolicy,
     build_pricing_breakdown,
 )
+from services.coupon_service import CouponService
 from utils.pricing import calculate_dimension_pricing_db
 from models.users import Address
 from db.session import get_db_session
@@ -48,6 +49,7 @@ class OrderService:
         address_id: int,
         payment_method: str,
         idempotency_key: str,
+        coupon_code: Optional[str] = None,
     ):
         if not items:
             raise HTTPException(400, "Cart cannot be empty")
@@ -100,6 +102,22 @@ class OrderService:
             OrderService._validate_and_price_items(db, items)
         )
 
+        # 3️⃣ Apply coupon if provided
+        coupon = None
+        coupon_discount_amount = 0.0
+        subtotal_before_coupon = None
+        subtotal_after_coupon = None
+        matched_dimension = None
+
+        if coupon_code:
+            coupon = CouponService.fetch_and_validate(db, coupon_code, user_id)
+            discount_result = CouponService.compute_discount(coupon, priced_items)
+            coupon_discount_amount = discount_result["discount_amount"]
+            matched_dimension = discount_result["matched_dimension"]
+            subtotal_before_coupon = items_subtotal
+            items_subtotal = round(max(items_subtotal - coupon_discount_amount, 0.0), 2)
+            subtotal_after_coupon = items_subtotal
+
         pricing_summary = build_pricing_breakdown(
             subtotal=items_subtotal,
             policy=OrderService._get_delivery_policy(),
@@ -107,7 +125,7 @@ class OrderService:
 
         order_total = pricing_summary["amount"]
 
-        # 3️⃣ Create order
+        # 4️⃣ Create order
         order = Order(
             user_id=user_id,
             idempotency_key=idempotency_key,
@@ -118,7 +136,16 @@ class OrderService:
             delivery_state=address.state,
             delivery_zip_code=address.zip_code,
             delivery_address_type=address.address_type,
-            items_subtotal=pricing_summary["items_subtotal"],
+            items_subtotal=subtotal_before_coupon or items_subtotal,
+            subtotal_before_coupon=subtotal_before_coupon,
+            coupon_discount_amount=coupon_discount_amount,
+            subtotal_after_coupon=subtotal_after_coupon,
+            coupon_id=coupon.id if coupon else None,
+            coupon_code=coupon.code if coupon else None,
+            coupon_type=coupon.rule_type.value if coupon else None,
+            coupon_required_qty=coupon.required_qty if coupon else None,
+            coupon_free_qty=coupon.free_qty if coupon else None,
+            coupon_matched_dimension=matched_dimension,
             delivery_charge=pricing_summary["delivery_charge"],
             amount=order_total,
             quantity=total_quantity,
@@ -128,11 +155,15 @@ class OrderService:
         db.add(order)
         db.flush()  # generate order.id
 
-        # 4️⃣ Create order items
+        # 5️⃣ Create order items
         for item in priced_items:
             db.add(OrderItem(order_id=order.id, **item))
 
-        # 5️⃣ Create payment
+        # 6️⃣ Record coupon usage (committed atomically with the order)
+        if coupon:
+            CouponService.record_usage(db, coupon.id, user_id, order.id)
+
+        # 7️⃣ Create payment
         payment_response = OrderService._create_payment(
             db=db,
             order=order,
@@ -169,21 +200,36 @@ class OrderService:
 
         db.refresh(order)
 
-        if payment_method=="COD":
-            from tasks.process_order import  process_confirmed_order
+        if payment_method == "COD":
+            from tasks.process_order import process_confirmed_order
             from tasks.notify_admin import notify_admin
 
             process_confirmed_order.send(order.id)
             notify_admin.send(order.id)
 
+        applied_coupon = None
+        if coupon:
+            applied_coupon = {
+                "id": coupon.id,
+                "code": coupon.code,
+                "rule_type": coupon.rule_type.value,
+                "percent_off": coupon.percent_off,
+                "required_qty": coupon.required_qty,
+                "free_qty": coupon.free_qty,
+                "matched_dimension": matched_dimension,
+            }
 
         return {
             "order_id": order.id,
+            "subtotal_before_coupon": subtotal_before_coupon,
+            "coupon_discount_amount": coupon_discount_amount,
+            "subtotal_after_coupon": subtotal_after_coupon,
             **pricing_summary,
             "currency": "INR",
             "payment_method": payment_method,
             **payment_response,
-            "items": priced_items
+            "applied_coupon": applied_coupon,
+            "items": priced_items,
         }
 
     # --------------------------------------------------
