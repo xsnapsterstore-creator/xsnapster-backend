@@ -39,6 +39,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
             cd /srv/app
 
             docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
