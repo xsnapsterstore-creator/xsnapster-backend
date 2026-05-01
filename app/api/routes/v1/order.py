@@ -23,6 +23,7 @@ def create_order(payload: CreateOrderRequest,
         payment_method=payload.payment_method,
         idempotency_key=payload.idempotency_key,
         coupon_code=payload.coupon_code,
+        customer_email=user.email  # Pass the email from the user object
     )
 
 

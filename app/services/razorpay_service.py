@@ -22,7 +22,7 @@ class RazorpayService:
         self.key_secret = settings.RAZORPAY_KEY_SECRET
         self.client = razorpay.Client(auth=(self.key_id, self.key_secret))
 
-    def create_order(self, amount: float, receipt: str, currency: str = "INR"):
+    def create_order(self, amount: float, receipt: str, currency: str = "INR", customer_email: str = None):
         """Only talks to Razorpay, no DB logic."""
         order_data = {
             "amount": int(amount * 100),
@@ -30,6 +30,8 @@ class RazorpayService:
             "payment_capture": 1,
             "receipt": receipt
         }
+        if customer_email:
+            order_data["notes"] = {"email": customer_email}
         return self.client.order.create(order_data)
 
     def verify_signature(self, order_id: str, payment_id: str, signature: str) -> bool:

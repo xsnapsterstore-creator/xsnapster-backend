@@ -94,7 +94,7 @@ def build_base_template(title: str, content: str) -> str:
                                     src="https://khnbsjuczeylcjrlrtni.supabase.co/storage/v1/object/public/xsnapster/logo/logo%20(1).svg"
                                     alt="XSnapster"
                                     width="160"
-                                    style="display:block; max-width:100%; height:auto;"
+                                    style="display:block; max-width:100%; height:auto; background-color:#ffffff;"
                                 />
                             </td>
                         </tr>

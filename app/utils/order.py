@@ -50,6 +50,7 @@ class OrderService:
         payment_method: str,
         idempotency_key: str,
         coupon_code: Optional[str] = None,
+        customer_email: str = None,
     ):
         if not items:
             raise HTTPException(400, "Cart cannot be empty")
@@ -310,7 +311,8 @@ class OrderService:
             }
 
         if payment_method == "RAZORPAY":
-            razorpay_order = razorpay_service.create_order(amount, receipt=str(order.id))   
+            customer_email = order.customer_email if order.customer_email else customer_email
+            razorpay_order = razorpay_service.create_order(amount, receipt=str(order.id), customer_email=customer_email)
 
 
             payment = Payment(
