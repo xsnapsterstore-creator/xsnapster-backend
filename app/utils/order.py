@@ -169,7 +169,8 @@ class OrderService:
             db=db,
             order=order,
             payment_method=payment_method,
-            amount=order_total
+            amount=order_total,
+            customer_email=customer_email
         )
 
         # ⭐ STEP 6: COMMIT WITH RACE CONDITION PROTECTION
@@ -292,7 +293,8 @@ class OrderService:
         db: Session,
         order: Order,
         payment_method: str,
-        amount: float
+        amount: float,
+        customer_email: str = None  # Added customer_email as an optional argument
     ):
         if payment_method == "COD":
             payment = Payment(
@@ -311,9 +313,8 @@ class OrderService:
             }
 
         if payment_method == "RAZORPAY":
-            customer_email = order.customer_email if order.customer_email else customer_email
+            # Use the customer_email argument directly
             razorpay_order = razorpay_service.create_order(amount, receipt=str(order.id), customer_email=customer_email)
-
 
             payment = Payment(
                 order_id=order.id,
@@ -329,7 +330,6 @@ class OrderService:
                 "payment_status": "CREATED",
                 "payment_gateway_order_id": razorpay_order["id"]
             }
-
         raise HTTPException(400, f"Unsupported payment method: {payment_method}")
 
 
