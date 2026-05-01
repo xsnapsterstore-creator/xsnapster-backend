@@ -24,6 +24,12 @@ def number_to_words(amount):
     return f"Indian Rupee {words.title()} Only"
 
 
+def to_decimal(value, default: str = "0.00") -> Decimal:
+    if value is None:
+        return Decimal(default)
+    return Decimal(str(value))
+
+
 def build_invoice_pdf(order):
 
     buffer = BytesIO()
@@ -49,7 +55,7 @@ def build_invoice_pdf(order):
         H.No. 1015, Akbarpur Sarai Gagh<br/>
         Kannauj, Uttar Pradesh 209727<br/>
         India<br/>
-        Email: xsnapster.store@gmail.com
+        Email: support@xsnapster.store
         """,
         normal
     )
@@ -106,7 +112,7 @@ def build_invoice_pdf(order):
         ["#", "Item & Description", "Qty", "Rate", "Amount"]
     ]
 
-    subtotal = Decimal("0.00")
+    computed_items_subtotal = Decimal("0.00")
 
     for i, item in enumerate(order.items, start=1):
 
@@ -114,7 +120,7 @@ def build_invoice_pdf(order):
         rate = Decimal(str(item.price))
         amount = qty * rate
 
-        subtotal += amount
+        computed_items_subtotal += amount
 
         title = item.product.title if item.product else "Product"
         dimension = f" ({item.dimension})" if item.dimension else ""
@@ -153,14 +159,40 @@ def build_invoice_pdf(order):
     # TOTALS
     # ====================================================
 
-    total = subtotal
+    subtotal_before_coupon = to_decimal(
+        order.subtotal_before_coupon,
+        default=str(order.items_subtotal if order.items_subtotal is not None else computed_items_subtotal),
+    )
+
+    coupon_discount = to_decimal(order.coupon_discount_amount)
+
+    subtotal_after_coupon = to_decimal(
+        order.subtotal_after_coupon,
+        default=str(max(subtotal_before_coupon - coupon_discount, Decimal("0.00"))),
+    )
+
+    delivery_charge = to_decimal(order.delivery_charge)
+
+    total = to_decimal(
+        order.amount,
+        default=str(subtotal_after_coupon + delivery_charge),
+    )
+
+    totals_rows = [["Items Subtotal", format_currency(subtotal_before_coupon)]]
+
+    if coupon_discount > 0:
+        coupon_label = "Coupon Discount"
+        if order.coupon_code:
+            coupon_label = f"Coupon Discount ({order.coupon_code})"
+        totals_rows.append([coupon_label, f"- {format_currency(coupon_discount)}"])
+
+    totals_rows.append(["Subtotal After Discount", format_currency(subtotal_after_coupon)])
+    totals_rows.append(["Delivery Charges", format_currency(delivery_charge)])
+    totals_rows.append(["Total", format_currency(total)])
+    totals_rows.append(["Balance Due", format_currency(total)])
 
     totals_table = Table(
-    [
-        ["Sub Total", format_currency(subtotal)],
-        ["Total", format_currency(total)],
-        ["Balance Due", format_currency(total)]
-    ],
+    totals_rows,
     colWidths=[400, 120]
     )
 
