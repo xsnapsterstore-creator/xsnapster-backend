@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from models.coupon import Coupon, CouponRuleType, CouponUsage
 
 
-BXGY_ALLOWED_DIMENSIONS = {"A2", "A3", "A4"}
+BXGY_ALLOWED_DIMENSIONS = {"13x19", "A3", "A4"}
 
 
 class CouponService:
