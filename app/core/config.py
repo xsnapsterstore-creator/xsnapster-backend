@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     ORDER_MAIL: str
     NOREPLY_MAIL: str
 
+    FRONTEND_URL: str = "https://xsnapster.store"
+
     DELIVERY_BASE_CHARGE: float = 99.0
     DELIVERY_FREE_THRESHOLD: float = 499.0
 

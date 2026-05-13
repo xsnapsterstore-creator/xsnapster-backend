@@ -18,7 +18,56 @@ from core.exceptions import (
     TokenNotFoundException,
 )
 import uuid
+import re
 from core.config import settings
+
+
+def parse_identifier(identifier: str) -> tuple[str, str]:
+    """
+    Parses and validates the identifier to determine if it's an email or phone number.
+    
+    Returns:
+        tuple: (identifier_type, normalized_value)
+               identifier_type is either "email" or "phone"
+    
+    Raises:
+        HTTPException: If the identifier is neither a valid email nor a valid phone number.
+    """
+    identifier = identifier.strip()
+    
+    # Try email validation first
+    try:
+        validated_email = validate_email(identifier, check_deliverability=False)
+        return ("email", validated_email.normalized)
+    except EmailNotValidError:
+        pass  # Not a valid email, try phone validation
+    
+    # Phone number validation
+    # Remove common formatting characters
+    cleaned_phone = re.sub(r'[\s\-\(\)\.]', '', identifier)
+    
+    # Pattern for valid phone numbers:
+    # - Optional + at the start for country code
+    # - 10-15 digits total (standard international range)
+    phone_pattern = r'^\+?\d{10,15}$'
+    
+    if re.match(phone_pattern, cleaned_phone):
+        return ("phone", cleaned_phone)
+    
+    # If neither valid email nor phone
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid identifier. Please provide a valid email address or phone number."
+    )
+
+
+def send_otp_sms(phone_number: str, otp_code: str):
+    """
+    Mock SMS sender for OTP delivery.
+    TODO: Integrate with actual SMS provider (e.g., Twilio, MSG91).
+    """
+    print(f"[MOCK SMS] Sending OTP {otp_code} to {phone_number}")
+    # In production, integrate with SMS gateway here
 
 
 def request_otp(db, identifier: str):
@@ -27,21 +76,25 @@ def request_otp(db, identifier: str):
     Prevents multiple active OTPs from being generated too frequently.
     """
     try:
-        user = db.query(User).filter(
-            (User.email == identifier) | (User.phone_number == identifier)
-        ).first()
-
-        if "@" in identifier:
+        # Validate and parse the identifier
+        identifier_type, normalized_identifier = parse_identifier(identifier)
+        
+        # Check deliverability for emails
+        if identifier_type == "email":
             try:
-               response = validate_email(identifier, check_deliverability=True)
+                validate_email(normalized_identifier, check_deliverability=True)
             except EmailNotValidError as e:
-               raise HTTPException(status_code=400, detail=f"Invalid or undeliverable email: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Invalid or undeliverable email: {str(e)}")
+        
+        user = db.query(User).filter(
+            (User.email == normalized_identifier) | (User.phone_number == normalized_identifier)
+        ).first()
 
         new_user_created = False
         if not user:
             user = User(
-                email=identifier if "@" in identifier else None,
-                phone_number=None if "@" in identifier else identifier,
+                email=normalized_identifier if identifier_type == "email" else None,
+                phone_number=normalized_identifier if identifier_type == "phone" else None,
             )
             try:
                 db.add(user)
@@ -110,9 +163,12 @@ def verify_otp_and_issue_tokens(db: Session, identifier: str, otp_code: str):
     Reuses an existing refresh token if it exists and is still valid.
     """
     try:
+        # Validate and normalize the identifier
+        _, normalized_identifier = parse_identifier(identifier)
+        
         # --- find user ---
         user = db.query(User).filter(
-            (User.email == identifier) | (User.phone_number == identifier)
+            (User.email == normalized_identifier) | (User.phone_number == normalized_identifier)
         ).first()
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
