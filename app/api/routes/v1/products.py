@@ -27,7 +27,7 @@ async def add_product(
     dimensions: List[str] = Form([]),
     admin_user: User = Depends(get_current_user_with_email_check)
 ):
-    dimensions = dimensions or ["A4","A3","13x19","Poster"]
+    dimensions = dimensions or ["A4","13x19","Poster"]
 
     image_links = []
     for image in images:
