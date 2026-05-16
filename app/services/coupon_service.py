@@ -8,9 +8,6 @@ from sqlalchemy.orm import Session
 from models.coupon import Coupon, CouponRuleType, CouponUsage
 
 
-BXGY_ALLOWED_DIMENSIONS = {"13x19", "A4"}
-
-
 class CouponService:
 
     # --------------------------------------------------
@@ -109,10 +106,13 @@ class CouponService:
             )
 
         matched_dimension = next(iter(dimensions))
-        if matched_dimension not in BXGY_ALLOWED_DIMENSIONS:
+        
+        # Check if coupon restricts to specific dimensions
+        if coupon.eligible_dimensions and matched_dimension not in coupon.eligible_dimensions:
+            allowed = ", ".join(coupon.eligible_dimensions)
             raise HTTPException(
                 400,
-                "Coupon is only applicable to A2, A3, or A4 dimensions",
+                f"Coupon is only applicable to {allowed} dimension(s)",
             )
 
         # Flatten unit prices by quantity, sort ascending, take first free_qty as free

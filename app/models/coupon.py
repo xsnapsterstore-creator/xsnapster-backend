@@ -12,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Enum as SAEnum,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.sql import func, text
 from sqlalchemy.orm import relationship
 
@@ -55,6 +56,9 @@ class Coupon(Base):
     percent_off = Column(Float, nullable=True)
     required_qty = Column(Integer, nullable=True)
     free_qty = Column(Integer, nullable=True)
+    
+    # Dimensions eligible for this coupon (NULL = all dimensions allowed)
+    eligible_dimensions = Column(ARRAY(String), nullable=True)
 
     is_active = Column(Boolean, nullable=False, server_default=text("true"))
     starts_at = Column(DateTime(timezone=True), nullable=True)
