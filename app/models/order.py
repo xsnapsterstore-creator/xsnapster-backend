@@ -56,6 +56,17 @@ class Order(Base):
     invoice_url = Column(String, nullable=True)
     invoice_number = Column(String(50), nullable=True, unique=True)
 
+    # Shiprocket Integration Fields
+    shiprocket_order_id = Column(String, nullable=True)
+    shiprocket_shipment_id = Column(String, nullable=True)
+    awb_code = Column(String, nullable=True)
+    courier_name = Column(String, nullable=True)
+    serviceable = Column(Boolean, nullable=False, server_default=text("true"))
+
+    # Additional Metadata
+    pickup_scheduled = Column(Boolean, nullable=False, server_default=text("false"))
+    manifest_generated = Column(Boolean, nullable=False, server_default=text("false"))
+
     user = relationship("User", back_populates="orders")
     coupon = relationship("Coupon", back_populates="orders")
     coupon_usage = relationship("CouponUsage", back_populates="order", uselist=False)

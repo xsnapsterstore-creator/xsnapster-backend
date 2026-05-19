@@ -2,10 +2,20 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from models.users import Address, User
 from schemas.address import AddressCreate, AddressUpdate
+from services.shiprocket_service import ShiprocketService, check_pincode_serviceability
 
 
-def create_address(db: Session, user: User, address_data: AddressCreate):
-    """Add new address for a user"""
+async def create_address(db: Session, user: User, address_data: AddressCreate, shiprocket_service: ShiprocketService):
+    """Add new address for a user with basic serviceability check (default weight)"""
+    # Check serviceability with default weight
+    result = await check_pincode_serviceability(shiprocket_service, address_data.zip_code)
+
+    if not result["is_serviceable"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The provided address is not serviceable. We currently do not deliver to this pincode."
+        )
+
     # Handle default address logic
     if address_data.is_default:
         db.query(Address).filter(Address.user_id == user.id, Address.is_default == True).update({"is_default": False})

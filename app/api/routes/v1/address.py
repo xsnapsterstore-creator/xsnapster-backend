@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from db.session import get_db
 from schemas.address import AddressCreate, AddressUpdate, AddressResponse
 from core.security import get_current_user
+from core.dependencies import get_shiprocket_service
 from services.address_service import (
     create_address,
     get_user_addresses,
     update_user_address,
     delete_user_address
 )
+from services.shiprocket_service import ShiprocketService
 from typing import List
 from models.users import User
 
@@ -16,12 +18,13 @@ router = APIRouter(prefix="/v1/addresses", tags=["Addresses"])
 
 
 @router.post("/", response_model=AddressResponse, status_code=status.HTTP_201_CREATED)
-def add_address(
+async def add_address(
     address_data: AddressCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    shiprocket_service: ShiprocketService = Depends(get_shiprocket_service)
 ):
-    return create_address(db, current_user, address_data)
+    return await create_address(db, current_user, address_data, shiprocket_service)
 
 
 @router.get("/", response_model=List[AddressResponse])

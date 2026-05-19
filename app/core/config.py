@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     DELIVERY_BASE_CHARGE: float = 99.0
     DELIVERY_FREE_THRESHOLD: float = 499.0
 
-
-
+    SHIPROCKET_EMAIL: str
+    SHIPROCKET_PASSWORD: str
+    WAREHOUSE_PINCODE: str = "209727"
 
     class Config:
         env_file = ENV_FILE
