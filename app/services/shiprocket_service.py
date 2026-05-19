@@ -1,7 +1,10 @@
 import httpx
+import logging
 from typing import Optional
 from fastapi import HTTPException, status
 from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Default weight for basic serviceability check (in kg)
 DEFAULT_SERVICEABILITY_WEIGHT = 0.5
@@ -22,10 +25,44 @@ class ShiprocketService:
         url = f"{self.BASE_URL}/auth/login"
         payload = {"email": self.email, "password": self.password}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            self.token = response.json().get("token")
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload)
+                
+                if response.status_code == 403:
+                    logger.error(
+                        f"Shiprocket authentication failed: 403 Forbidden. "
+                        f"Email: {self.email}, Password: {self.password[:3]}***{self.password[-2:]} (len={len(self.password)})"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Shipping service temporarily unavailable. Please try again later."
+                    )
+                elif response.status_code == 401:
+                    logger.error(
+                        f"Shiprocket authentication failed: Invalid credentials. "
+                        f"Email: {self.email}, Password: {self.password[:3]}***{self.password[-2:]} (len={len(self.password)})"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Shipping service temporarily unavailable. Please try again later."
+                    )
+                
+                response.raise_for_status()
+                self.token = response.json().get("token")
+                
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Shiprocket authentication HTTP error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Shipping service temporarily unavailable. Please try again later."
+            )
+        except httpx.RequestError as e:
+            logger.error(f"Shiprocket authentication network error: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Shipping service temporarily unavailable. Please try again later."
+            )
 
     async def _get_headers(self):
         """
