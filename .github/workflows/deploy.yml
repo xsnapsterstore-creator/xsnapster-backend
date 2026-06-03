@@ -1,50 +1,64 @@
 name: Deploy FastAPI to VPS
 
 on:
-  push:
-    branches: [ "main" ]
+push:
+branches:
+- "main"
 
 permissions:
-  contents: read
-  packages: write
+contents: read
+packages: write
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ secrets.APP_NAME }}:latest
+IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/${{ secrets.APP_NAME }}:latest
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+build-and-deploy:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
 
-      - name: Login to GHCR
-        run: |
-          echo "${{ github.token }}" | docker login ghcr.io \
-            -u ${{ github.repository_owner }} --password-stdin
+  - name: Login to GHCR
+    run: |
+      echo "${{ github.token }}" | docker login ghcr.io \
+        -u ${{ github.repository_owner }} --password-stdin
 
-      - name: Build Docker image
-        run: |
-          docker build -t $IMAGE_NAME ./app
+  - name: Build Docker image
+    run: |
+      docker build -t $IMAGE_NAME ./app
 
-      - name: Push Docker image
-        run: |
-          docker push $IMAGE_NAME
+  - name: Push Docker image
+    run: |
+      docker push $IMAGE_NAME
 
-      - name: Deploy via Docker Compose on VPS
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            set -e
-            cd /srv/app
+  - name: Test SSH Port
+    run: |
+      nc -zv ${{ secrets.SSH_HOST }} 22
 
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ github.token }}
+  - name: Deploy via Docker Compose on VPS
+    uses: appleboy/ssh-action@v1.0.0
+    with:
+      host: ${{ secrets.SSH_HOST }}
+      username: ${{ secrets.SSH_USER }}
+      key: ${{ secrets.SSH_KEY }}
+      port: 22
+      timeout: 60s
+      command_timeout: 20m
+      debug: true
+      script: |
+        set -e
 
-            docker compose pull backend worker_order worker_admin worker_shiprocket
-            docker compose up -d backend worker_order worker_admin worker_shiprocket
-            docker exec nginx nginx -s reload
+        cd /srv/app
 
+        echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
+          -u ${{ github.repository_owner }} --password-stdin
+
+        docker compose pull backend worker_order worker_admin worker_shiprocket
+
+        docker compose up -d backend worker_order worker_admin worker_shiprocket
+
+        docker exec nginx nginx -s reload
+```
