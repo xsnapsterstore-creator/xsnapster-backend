@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 
 from models.order import Payment
 from services.razorpay_service import razorpay_service
-from utils.payment_finalizer import finalize_razorpay_payment
+from utils.payment_finalizer import (
+    compute_expected_order_total,
+    finalize_razorpay_payment,
+)
 
 
 def verify_payment_util(
@@ -48,10 +51,7 @@ def verify_payment_util(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     # 4️⃣ Delivery-inclusive amount integrity check
-    expected_total = round(
-        float(payment.order.items_subtotal) + float(payment.order.delivery_charge),
-        2,
-    )
+    expected_total = compute_expected_order_total(payment.order)
 
     if round(float(payment.order.amount), 2) != expected_total:
         raise HTTPException(status_code=409, detail="Order amount breakdown mismatch")

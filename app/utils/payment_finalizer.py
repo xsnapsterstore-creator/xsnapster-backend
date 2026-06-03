@@ -4,6 +4,25 @@ from models.order import Payment
 from schemas.payment import PaymentStatus, OrderStatus
 
 
+def compute_expected_order_total(order) -> float:
+    """
+    Compute the canonical payable total from persisted order snapshot.
+    Uses post-coupon subtotal when available and supports legacy rows.
+    """
+    items_subtotal = float(order.items_subtotal or 0.0)
+    coupon_discount = float(order.coupon_discount_amount or 0.0)
+
+    if order.subtotal_after_coupon is not None:
+        payable_items_subtotal = float(order.subtotal_after_coupon)
+    elif coupon_discount > 0:
+        payable_items_subtotal = max(items_subtotal - coupon_discount, 0.0)
+    else:
+        payable_items_subtotal = items_subtotal
+
+    delivery_charge = float(order.delivery_charge or 0.0)
+    return round(payable_items_subtotal + delivery_charge, 2)
+
+
 def finalize_razorpay_payment(
     *,
     db: Session,
@@ -24,10 +43,7 @@ def finalize_razorpay_payment(
     if not payment:
         return None
 
-    expected_total = round(
-        float(payment.order.items_subtotal) + float(payment.order.delivery_charge),
-        2,
-    )
+    expected_total = compute_expected_order_total(payment.order)
 
     if round(float(payment.order.amount), 2) != expected_total:
         raise HTTPException(status_code=409, detail="Order amount breakdown mismatch")
