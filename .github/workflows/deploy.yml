@@ -34,7 +34,7 @@ jobs:
 
       - name: Test SSH Port
         run: |
-          nc -zv ${{ secrets.SSH_HOST }} 22
+          nc -zv ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }}
 
       - name: Deploy via Docker Compose on VPS
         uses: appleboy/ssh-action@v1.0.0
@@ -42,7 +42,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          port: 22
+          port: ${{ secrets.SSH_PORT }}
           timeout: 60s
           command_timeout: 20m
           debug: true
