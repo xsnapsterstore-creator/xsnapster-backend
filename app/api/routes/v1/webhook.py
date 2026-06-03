@@ -33,7 +33,7 @@ async def razorpay_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
-@router.post("/v1/shiprocket/webhook")
+@router.post("/v1/shipr/webhook")
 async def shiprocket_webhook(request: Request, db: Session = Depends(get_db)):
     payload = await request.body()
     auth_header_name = settings.SHIPROCKET_WEBHOOK_AUTH_HEADER
