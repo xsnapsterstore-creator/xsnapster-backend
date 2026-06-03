@@ -48,6 +48,10 @@ class Settings(BaseSettings):
 
     SHIPROCKET_EMAIL: str
     SHIPROCKET_PASSWORD: str
+    SHIPROCKET_WEBHOOK_TOKEN: str
+    SHIPROCKET_WEBHOOK_AUTH_HEADER: str = "Authorization"
+    SHIPROCKET_WEBHOOK_SECRET: str = ""
+    SHIPROCKET_WEBHOOK_SIGNATURE_HEADER: str = "X-Shiprocket-Signature"
     WAREHOUSE_PINCODE: str = "209727"
 
     class Config:

@@ -1,5 +1,7 @@
 import httpx
 import logging
+import hmac
+import hashlib
 from typing import Optional
 from fastapi import HTTPException, status
 from core.config import settings
@@ -8,6 +10,40 @@ logger = logging.getLogger(__name__)
 
 # Default weight for basic serviceability check (in kg)
 DEFAULT_SERVICEABILITY_WEIGHT = 0.5
+
+
+def _extract_signature(signature: str) -> str:
+    sig = (signature or "").strip()
+    if "=" in sig:
+        # Accept formats like "sha256=<hex>"
+        _, sig = sig.split("=", 1)
+    return sig.strip()
+
+
+def _extract_bearer_token(value: str) -> str:
+    raw = (value or "").strip()
+    if raw.lower().startswith("bearer "):
+        return raw[7:].strip()
+    return raw
+
+
+def verify_shiprocket_webhook_token(token_header_value: str) -> bool:
+    expected = settings.SHIPROCKET_WEBHOOK_TOKEN.strip()
+    if not expected:
+        return False
+
+    provided = _extract_bearer_token(token_header_value)
+    return hmac.compare_digest(expected, provided)
+
+
+def verify_shiprocket_webhook_signature(payload: bytes, signature: str) -> bool:
+    secret = settings.SHIPROCKET_WEBHOOK_SECRET.strip()
+    if not secret:
+        return False
+
+    expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    provided = _extract_signature(signature)
+    return hmac.compare_digest(expected, provided)
 
 
 class ShiprocketService:

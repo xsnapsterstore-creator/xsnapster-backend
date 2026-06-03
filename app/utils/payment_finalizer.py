@@ -48,6 +48,8 @@ def finalize_razorpay_payment(
     db.commit()
     from tasks.process_order import process_confirmed_order
     from tasks.notify_admin import notify_admin
+    from tasks.shiprocket_order import create_shiprocket_order
     process_confirmed_order.send(payment.order_id)
     notify_admin.send(payment.order_id)
+    create_shiprocket_order.send(payment.order_id)
     return payment
