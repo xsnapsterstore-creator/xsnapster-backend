@@ -41,6 +41,15 @@ def build_shiprocket_order_payload(order: Order) -> dict:
     # Determine payment mode
     is_cod = order.payment.payment_method == "COD" if order.payment else False
     
+    # Shiprocket expects sub_total before discount; it applies total_discount separately.
+    items_subtotal = float(
+        order.subtotal_before_coupon
+        if order.subtotal_before_coupon is not None
+        else (order.items_subtotal or 0)
+    )
+    coupon_discount = float(order.coupon_discount_amount or 0)
+    shipping_charges = float(order.delivery_charge or 0)
+
     # Build the payload
     payload = {
         "order_id": str(order.id),
@@ -76,11 +85,11 @@ def build_shiprocket_order_payload(order: Order) -> dict:
         # Order details
         "order_items": order_items,
         "payment_method": "COD" if is_cod else "Prepaid",
-        "shipping_charges": 0,  # We handle this ourselves
+        "shipping_charges": shipping_charges,
         "giftwrap_charges": 0,
         "transaction_charges": 0,
-        "total_discount": order.coupon_discount_amount or 0,
-        "sub_total": order.amount,
+        "total_discount": coupon_discount,
+        "sub_total": items_subtotal,
         
         # Package dimensions
         "length": DEFAULT_LENGTH,
