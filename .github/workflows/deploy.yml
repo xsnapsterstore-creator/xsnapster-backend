@@ -30,7 +30,18 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push $IMAGE_NAME
+          for i in 1 2 3; do
+            echo "Push attempt $i/3"
+            if docker push $IMAGE_NAME; then
+              exit 0
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "Push failed. Retrying in 10s..."
+              sleep 10
+            fi
+          done
+          echo "Docker push failed after 3 attempts"
+          exit 1
 
       - name: Test SSH Port
         run: |
