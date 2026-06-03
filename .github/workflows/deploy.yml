@@ -51,11 +51,16 @@ jobs:
 
             cd /srv/app
 
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
+            DOCKER="docker"
+            if ! docker info >/dev/null 2>&1; then
+              DOCKER="sudo docker"
+            fi
+
+            echo "${{ secrets.GHCR_PAT }}" | $DOCKER login ghcr.io \
               -u ${{ github.repository_owner }} --password-stdin
 
-            docker compose pull backend worker_order worker_admin worker_shiprocket
+            $DOCKER compose pull backend worker_order worker_admin worker_shiprocket
 
-            docker compose up -d backend worker_order worker_admin worker_shiprocket
+            $DOCKER compose up -d backend worker_order worker_admin worker_shiprocket
 
-            docker exec nginx nginx -s reload
+            $DOCKER exec nginx nginx -s reload
